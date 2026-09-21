@@ -1,0 +1,6 @@
+@Hukuk.AI_HostAddress = http://localhost:5073
+
+GET {{Hukuk.AI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
