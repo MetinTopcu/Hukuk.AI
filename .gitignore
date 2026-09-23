@@ -361,3 +361,10 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Ham mevzuat: sadece HTML (parser girdisi) repoda, PDF/TXT degil
+data/raw/*.pdf
+data/raw/*.txt
+
+# Ingestion ciktisi: kod her calistirmada yeniden uretir
+data/parsed/
