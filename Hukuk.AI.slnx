@@ -1,4 +1,5 @@
 <Solution>
   <Project Path="Hukuk.AI.Data/Hukuk.AI.Data.csproj" />
+  <Project Path="Hukuk.AI.Ingestion/Hukuk.AI.Ingestion.csproj" />
   <Project Path="Hukuk.AI/Hukuk.AI.csproj" />
 </Solution>
