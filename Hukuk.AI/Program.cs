@@ -1,23 +1,34 @@
-var builder = WebApplication.CreateBuilder(args);
+using Microsoft.Extensions.Configuration;
+using Microsoft.SemanticKernel;
 
-// Add services to the container.
+var configuration = new ConfigurationBuilder()
+    .SetBasePath(AppContext.BaseDirectory)
+    .AddJsonFile("appsettings.json", optional: true)
+    .AddUserSecrets<Program>()
+    .Build();
 
-builder.Services.AddControllers();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+var endpoint = configuration["AI:AzureOpenAIEndpoint"];
+var apiKey = configuration["AI:AzureOpenAIKey"];
 
-var app = builder.Build();
+var chatModelId = configuration["AI:ModelId"]
+    ?? throw new InvalidOperationException("AI:ModelId ayarı bulunamadı.");
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-}
+// 2. Şefi (Kernel) yaratalım ve ona Azure OpenAI'ı bağlayalım
+var builder = Kernel.CreateBuilder();
+builder.AddAzureOpenAIChatCompletion(
+    deploymentName: chatModelId,
+    endpoint: endpoint!,
+    apiKey: apiKey!);
 
-app.UseHttpsRedirection();
+var kernel = builder.Build();
 
-app.UseAuthorization();
+Console.WriteLine("Hukuk.AI Başlatılıyor...\n");
 
-app.MapControllers();
+var prompt = "Sen kıdemli bir avukatsın. 'Mücbir Sebep' nedir, sadece 1 cümleyle açıkla.";
+Console.WriteLine($"Soru: {prompt}");
+Console.WriteLine("Cevap bekleniyor...\n");
 
-app.Run();
+var result = await kernel.InvokePromptAsync(prompt);
+
+Console.WriteLine($"Hukuk.AI: {result}");
+Console.ReadLine();

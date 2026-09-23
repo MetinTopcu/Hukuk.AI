@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  postgres-ai:
+    image: pgvector/pgvector:pg16
+    container_name: hukuk_ai_db
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=SecretPassword123!
+      - POSTGRES_DB=HukukAIDb
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata_ai:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  pgdata_ai:
