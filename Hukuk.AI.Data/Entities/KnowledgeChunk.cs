@@ -1,3 +1,4 @@
+using NpgsqlTypes;
 using Pgvector;
 
 namespace Hukuk.AI.Data.Entities;
@@ -13,11 +14,10 @@ public class KnowledgeChunk
     // Örn: "Türk Borçlar Kanunu"
     public string LawName { get; set; } = string.Empty;
 
-    public ArticleType ArticleType { get; set; }
+    // Chunk'ın içerdiği maddeler (jsonb). A/C/D'de tek madde; B'de pencere birden fazla maddeye yayılabilir.
+    public List<ArticleRef> Articles { get; set; } = [];
 
-    public int ArticleNo { get; set; }
-
-    // Kenar başlıkları hiyerarşisi, örn: "Konut ve Çatılı İşyeri Kiraları > E. Kira bedeli > II. Belirlenmesi"
+    // B'de (çok maddeli pencere) boş. Kenar başlıkları hiyerarşisi, örn: "Konut ve Çatılı İşyeri Kiraları > E. Kira bedeli > II. Belirlenmesi"
     public string SectionPath { get; set; } = string.Empty;
 
     // Maddenin kendi kenar başlığı, örn: "Kiracının güvence vermesi"
@@ -35,8 +35,14 @@ public class KnowledgeChunk
     // text-embedding-3-large, dimensions: 1536 (float32)
     public Vector? Embedding { get; set; }
 
+    // Full-text arama için content'in kelime kökleri ('turkish' sözlüğü); Postgres üretir (generated column).
+    public NpgsqlTsVector SearchVector { get; set; } = null!;
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
+
+// Madde kimliği: Ek/Geçici maddeler asıl madde numaralarını tekrar kullandığı için tür de gerekli.
+public record ArticleRef(ArticleType Type, int No);
 
 public enum ArticleType
 {
@@ -49,5 +55,6 @@ public enum ChunkStrategy
 {
     A_Madde,
     B_SabitToken,
-    C_MaddeBaglamli
+    C_MaddeBaglamli,
+    D_Hibrit
 }

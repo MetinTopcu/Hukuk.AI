@@ -15,10 +15,15 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         {
             e.Property(x => x.Law).HasMaxLength(10);
             e.Property(x => x.LawName).HasMaxLength(200);
-            e.Property(x => x.ArticleType).HasConversion<string>().HasMaxLength(20);
+            e.OwnsMany(x => x.Articles, a =>
+            {
+                a.ToJson();
+                a.Property(r => r.Type).HasConversion<string>();
+            });
             e.Property(x => x.ChunkStrategy).HasConversion<string>().HasMaxLength(30);
             e.Property(x => x.Embedding).HasColumnType("vector(1536)");
-            // İndeksler (B-tree, HNSW) ölçümlerden sonra eklenecek.
+            e.HasGeneratedTsVectorColumn(x => x.SearchVector, "turkish", x => new { x.Content });
+            // İndeksler (B-tree, HNSW, GIN) ölçümlerden sonra eklenecek.
         });
     }
 }
