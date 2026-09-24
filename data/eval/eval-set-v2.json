@@ -1,0 +1,839 @@
+{
+  "version": 2,
+  "created": "2026-09-24",
+  "description": "Hukuk.AI 2. ölçüm seti = v1'deki 50 soru (style: gunluk) + 24 yeni soru. style: gunluk (günlük dil) | madde_ref (soruda kanun/madde atfı var) | hukuki (hukuk terminolojisi, madde atfı yok). Yeni soruların beklenen maddeleri data/parsed metninden doğrulandı. Diğer alanlar v1 ile aynı.",
+  "sources": {
+    "6098": "Türk Borçlar Kanunu (kira hükümleri md. 299-378)",
+    "4857": "İş Kanunu"
+  },
+  "questions": [
+    {
+      "id": "k01",
+      "law": "6098",
+      "type": "tek_madde",
+      "expected_articles": [
+        342
+      ],
+      "question": "Ev sahibim depozitomu geri vermiyor, evden çıkalı 2 ay oldu. Ne yapabilirim?",
+      "answer_key": "Güvence (depozito) parası vadeli banka hesabına yatırılmalıdır. Kiraya veren sözleşmenin sona ermesini izleyen 3 ay içinde dava/takip açtığını bankaya bildirmezse banka, kiracının istemi üzerine güvenceyi geri verir.",
+      "style": "gunluk"
+    },
+    {
+      "id": "k02",
+      "law": "6098",
+      "type": "tek_madde",
+      "expected_articles": [
+        342
+      ],
+      "question": "Ev sahibi 6 aylık kira tutarında depozito istiyor, bu yasal mı?",
+      "answer_key": "Konut ve çatılı işyeri kiralarında güvence üç aylık kira bedelini aşamaz.",
+      "style": "gunluk"
+    },
+    {
+      "id": "k03",
+      "law": "6098",
+      "type": "tek_madde",
+      "expected_articles": [
+        344
+      ],
+      "question": "Ev sahibim yeni dönemde kirayı %60 artırmak istiyor, buna hakkı var mı?",
+      "answer_key": "Yenilenen kira dönemindeki artış, bir önceki kira yılının TÜFE on iki aylık ortalamasındaki değişim oranını geçemez.",
+      "style": "gunluk"
+    },
+    {
+      "id": "k04",
+      "law": "6098",
+      "type": "tek_madde",
+      "expected_articles": [
+        344
+      ],
+      "question": "5 yıldan fazladır aynı evde kiracıyım, ev sahibi kirayı piyasa değerine çekmek için dava açabilir mi?",
+      "answer_key": "Beş yıldan uzun süreli veya beş yıldan sonra yenilenen sözleşmelerde kira bedeli hâkim tarafından TÜFE, kiralananın durumu ve emsal kira bedelleri gözetilerek hakkaniyete göre belirlenir.",
+      "style": "gunluk"
+    },
+    {
+      "id": "k05",
+      "law": "6098",
+      "type": "tek_madde",
+      "expected_articles": [
+        325
+      ],
+      "question": "Sözleşmem bitmeden evden çıkmak istiyorum, kalan aylar için kira ödemek zorunda mıyım?",
+      "answer_key": "Kiracının borçları, kiralananın benzer koşullarla kiraya verilebileceği makul bir süre için devam eder. Ödeme gücü olan ve devralmaya hazır yeni kiracı bulursa borçları sona erer.",
+      "style": "gunluk"
+    },
+    {
+      "id": "k06",
+      "law": "6098",
+      "type": "tek_madde",
+      "expected_articles": [
+        347
+      ],
+      "question": "Kontratımın süresi doldu, ev sahibi süre bitti diye beni evden çıkarabilir mi?",
+      "answer_key": "Kiraya veren, sözleşme süresinin bitimine dayanarak sözleşmeyi sona erdiremez; kiracı bildirimde bulunmazsa sözleşme 1 yıl uzar. 10 yıllık uzama süresi sonunda kiraya veren sebepsiz fesih yapabilir.",
+      "style": "gunluk"
+    },
+    {
+      "id": "k07",
+      "law": "6098",
+      "type": "cok_madde",
+      "expected_articles": [
+        347,
+        348
+      ],
+      "question": "Kira sözleşmem bitmek üzere ve yenilemek istemiyorum. Ev sahibine ne kadar önce ve nasıl haber vermem lazım?",
+      "answer_key": "Süre bitiminden en az 15 gün önce bildirim yapılmalı; konut ve çatılı işyeri kiralarında fesih bildirimi yazılı olmalıdır.",
+      "style": "gunluk"
+    },
+    {
+      "id": "k08",
+      "law": "6098",
+      "type": "cok_madde",
+      "expected_articles": [
+        350,
+        355
+      ],
+      "question": "Ev sahibi oğlu evlenecek diye evi boşaltmamı istiyor, çıkmak zorunda mıyım?",
+      "answer_key": "Kiraya veren, kendisi veya altsoyunun konut gereksinimi varsa belirli süreli sözleşmelerde süre sonunda bir ay içinde açacağı dava ile sözleşmeyi sona erdirebilir; kendiliğinden çıkarma yoktur.",
+      "style": "gunluk"
+    },
+    {
+      "id": "k09",
+      "law": "6098",
+      "type": "tek_madde",
+      "expected_articles": [
+        355
+      ],
+      "question": "Ev sahibi ihtiyacım var deyip beni çıkardı, 2 ay sonra evi başkasına daha pahalıya kiraladı. Bir hakkım var mı?",
+      "answer_key": "Gereksinim amacıyla boşaltılan kiralanan haklı sebep olmadan 3 yıl başkasına kiralanamaz; aykırılıkta eski kiracıya en az bir yıllık kira bedeli tutarında tazminat ödenir.",
+      "style": "gunluk"
+    },
+    {
+      "id": "k10",
+      "law": "6098",
+      "type": "cok_madde",
+      "expected_articles": [
+        315,
+        352
+      ],
+      "question": "Kirayı 2 aydır ödeyemedim, ev sahibi beni hemen tahliye ettirebilir mi?",
+      "answer_key": "Kiraya veren yazılı olarak süre vermelidir; konut ve çatılı işyerinde bu süre en az 30 gündür, sürede ödenmezse fesih. Ayrıca iki haklı ihtar dava yoluyla tahliye sebebidir.",
+      "style": "gunluk"
+    },
+    {
+      "id": "k11",
+      "law": "6098",
+      "type": "tek_madde",
+      "expected_articles": [
+        352
+      ],
+      "question": "Bir kira yılı içinde kirayı iki kez geç ödedim ve iki kere ihtarname geldi. Bu beni evden çıkarmak için yeterli mi?",
+      "answer_key": "Bir kira yılı içinde kira bedelini ödemediği için iki haklı yazılı ihtara sebep olan kiracıya karşı, kiraya veren kira yılı bitiminden itibaren bir ay içinde tahliye davası açabilir.",
+      "style": "gunluk"
+    },
+    {
+      "id": "k12",
+      "law": "6098",
+      "type": "cok_madde",
+      "expected_articles": [
+        306,
+        305
+      ],
+      "question": "Kombi bozuldu, ev sahibi yaptırmıyor. Kendim yaptırıp parasını kiradan düşebilir miyim?",
+      "answer_key": "Kiracı ayıbın uygun sürede giderilmesini ister; giderilmezse ayıbı kiraya veren hesabına gidertip alacağını kira bedelinden indirebilir.",
+      "style": "gunluk"
+    },
+    {
+      "id": "k13",
+      "law": "6098",
+      "type": "cok_madde",
+      "expected_articles": [
+        307,
+        305
+      ],
+      "question": "Evde rutubet ve küf var, ev sahibinden kira indirimi isteyebilir miyim?",
+      "answer_key": "Kullanımı etkileyen ayıplarda, kiraya verenin öğrenmesinden giderilmesine kadar geçen süre için ayıpla orantılı kira indirimi istenebilir.",
+      "style": "gunluk"
+    },
+    {
+      "id": "k14",
+      "law": "6098",
+      "type": "tek_madde",
+      "expected_articles": [
+        334
+      ],
+      "question": "Evi boya badana yapmadan teslim edersem ev sahibi depozitodan kesebilir mi? Sadece normal eskime var.",
+      "answer_key": "Kiracı sözleşmeye uygun kullanmadan doğan eskime ve bozulmalardan sorumlu değildir.",
+      "style": "gunluk"
+    },
+    {
+      "id": "k15",
+      "law": "6098",
+      "type": "tek_madde",
+      "expected_articles": [
+        334
+      ],
+      "question": "Kira sözleşmesine 'kiracı çıkarken 2 kira tutarında tazminat öder' yazılmış. Bu madde geçerli mi?",
+      "answer_key": "Sözleşmeye aykırı kullanımdan doğan zararlar dışında kiracının önceden tazminat ödemeyi taahhüt ettiği anlaşmalar geçersizdir.",
+      "style": "gunluk"
+    },
+    {
+      "id": "k16",
+      "law": "6098",
+      "type": "tek_madde",
+      "expected_articles": [
+        322
+      ],
+      "question": "Kiracıyım, evi Airbnb'de kısa süreli kiraya vermek istiyorum. Ev sahibinden izin almam gerekir mi?",
+      "answer_key": "Konut ve çatılı işyeri kiralarında kiracı, kiraya verenin yazılı rızası olmadan kiralananı başkasına kiralayamaz, kullanım hakkını devredemez.",
+      "style": "gunluk"
+    },
+    {
+      "id": "k17",
+      "law": "6098",
+      "type": "tek_madde",
+      "expected_articles": [
+        321
+      ],
+      "question": "Ev sahibinin iznini alıp mutfağı kendi paramla yeniledim. Taşınırken masrafımı ondan isteyebilir miyim?",
+      "answer_key": "Aksine yazılı anlaşma yoksa kiracı, rızayla yaptığı yenilik ve değişikliklerden doğan değer artışının karşılığını isteyemez.",
+      "style": "gunluk"
+    },
+    {
+      "id": "k18",
+      "law": "6098",
+      "type": "tek_madde",
+      "expected_articles": [
+        341
+      ],
+      "question": "Elektrik, su ve doğalgaz faturalarını kiracı mı öder ev sahibi mi?",
+      "answer_key": "Sözleşmede aksi veya aksine yerel âdet yoksa ısıtma, aydınlatma ve su gibi kullanma giderlerine kiracı katlanır.",
+      "style": "gunluk"
+    },
+    {
+      "id": "k19",
+      "law": "6098",
+      "type": "tek_madde",
+      "expected_articles": [
+        349
+      ],
+      "question": "Eşim benim haberim olmadan oturduğumuz evin kira sözleşmesini feshetmiş. Bu geçerli mi?",
+      "answer_key": "Aile konutu olarak kiralanan taşınmazda kiracı, eşinin açık rızası olmadıkça sözleşmeyi feshedemez.",
+      "style": "gunluk"
+    },
+    {
+      "id": "k20",
+      "law": "6098",
+      "type": "cok_madde",
+      "expected_articles": [
+        310,
+        351
+      ],
+      "question": "Ev sahibi evi sattı. Yeni sahibi beni evden çıkarabilir mi?",
+      "answer_key": "Yeni malik kira sözleşmesinin tarafı olur. Gereksinim varsa edinmeden itibaren 1 ay içinde yazılı bildirim yapıp 6 ay sonra dava açabilir veya süre bitiminden itibaren 1 ay içinde dava açabilir.",
+      "style": "gunluk"
+    },
+    {
+      "id": "k21",
+      "law": "6098",
+      "type": "tek_madde",
+      "expected_articles": [
+        316
+      ],
+      "question": "Üst kattaki komşularla sürekli kavga ediyoruz. Ev sahibi bu yüzden kira sözleşmemi feshedebilir mi?",
+      "answer_key": "Kiracı komşulara saygı göstermekle yükümlüdür; aykırılıkta konut kirasında kiraya veren en az 30 gün süre vererek yazılı ihtar eder, giderilmezse fesih; çekilmez hâllerde hemen fesih mümkündür.",
+      "style": "gunluk"
+    },
+    {
+      "id": "k22",
+      "law": "6098",
+      "type": "tek_madde",
+      "expected_articles": [
+        323
+      ],
+      "question": "Kiracı olduğum evin sözleşmesini arkadaşıma devretmek istiyorum, olur mu?",
+      "answer_key": "Kiracı, kiraya verenin yazılı rızası olmadan kira ilişkisini başkasına devredemez; rızayla devirde devralan kiracının yerine geçer.",
+      "style": "gunluk"
+    },
+    {
+      "id": "k23",
+      "law": "6098",
+      "type": "tek_madde",
+      "expected_articles": [
+        342
+      ],
+      "question": "ev sahibim depozitomu vermiyo ne yapmam lazim",
+      "answer_key": "k01 ile aynı; Türkçe karakter ve yazım hatası dayanıklılık testi.",
+      "style": "gunluk"
+    },
+    {
+      "id": "i01",
+      "law": "4857",
+      "type": "tek_madde",
+      "expected_articles": [
+        17
+      ],
+      "question": "2 yıldır çalıştığım işten çıkarıldım, patron ihbar süresi tanımadı. Ne kadar ihbar tazminatı almam gerekir?",
+      "answer_key": "1,5-3 yıl arası çalışan için bildirim süresi 6 haftadır; uymayan taraf bu süreye ilişkin ücret tutarında tazminat öder.",
+      "style": "gunluk"
+    },
+    {
+      "id": "i02",
+      "law": "4857",
+      "type": "tek_madde",
+      "expected_articles": [
+        17
+      ],
+      "question": "4 yıldır çalıştığım işten istifa etmek istiyorum. Ne kadar önceden haber vermem gerekiyor?",
+      "answer_key": "3 yıldan fazla çalışan için bildirim süresi 8 haftadır; süreler sözleşmeyle artırılabilir.",
+      "style": "gunluk"
+    },
+    {
+      "id": "i03",
+      "law": "4857",
+      "type": "tek_madde",
+      "expected_articles": [
+        15
+      ],
+      "question": "Deneme süresindeyken işten çıkarıldım. Tazminat alabilir miyim?",
+      "answer_key": "Deneme süresi içinde taraflar bildirim süresine gerek olmaksızın ve tazminatsız fesih yapabilir; çalışılan günlerin ücreti saklıdır.",
+      "style": "gunluk"
+    },
+    {
+      "id": "i04",
+      "law": "4857",
+      "type": "tek_madde",
+      "expected_articles": [
+        15
+      ],
+      "question": "İş sözleşmeme deneme süresi 6 ay yazılmış, bu yasal mı?",
+      "answer_key": "Deneme süresi en çok 2 ay olabilir; toplu iş sözleşmesiyle 4 aya kadar uzatılabilir.",
+      "style": "gunluk"
+    },
+    {
+      "id": "i05",
+      "law": "4857",
+      "type": "tek_madde",
+      "expected_articles": [
+        34
+      ],
+      "question": "Maaşım 1 aydır yatmadı, işe gitmeyi bırakabilir miyim?",
+      "answer_key": "Ücreti ödeme gününden itibaren 20 gün içinde mücbir neden dışında ödenmeyen işçi iş görme borcunu yerine getirmekten kaçınabilir; bu nedenle sözleşmesi feshedilemez.",
+      "style": "gunluk"
+    },
+    {
+      "id": "i06",
+      "law": "4857",
+      "type": "tek_madde",
+      "expected_articles": [
+        24
+      ],
+      "question": "Maaşım 3 aydır ödenmiyor. İstifa edersem tazminat haklarımı kaybeder miyim?",
+      "answer_key": "Ücretin kanun veya sözleşmeye uygun ödenmemesi işçiye haklı nedenle derhal fesih hakkı verir (md. 24/II-e).",
+      "style": "gunluk"
+    },
+    {
+      "id": "i07",
+      "law": "4857",
+      "type": "cok_madde",
+      "expected_articles": [
+        41,
+        63
+      ],
+      "question": "Haftada 55 saat çalışıyorum. Fazla mesai ücreti almam gerekir mi, ne kadar?",
+      "answer_key": "Haftalık 45 saati aşan çalışma fazla çalışmadır; her saat için normal saat ücretinin %50 fazlası ödenir.",
+      "style": "gunluk"
+    },
+    {
+      "id": "i08",
+      "law": "4857",
+      "type": "tek_madde",
+      "expected_articles": [
+        68
+      ],
+      "question": "Günde 9 saat çalışıyorum, öğle arası en az ne kadar olmalı?",
+      "answer_key": "7,5 saatten fazla süreli işlerde en az 1 saat ara dinlenmesi verilir; ara dinlenmesi çalışma süresinden sayılmaz.",
+      "style": "gunluk"
+    },
+    {
+      "id": "i09",
+      "law": "4857",
+      "type": "tek_madde",
+      "expected_articles": [
+        53
+      ],
+      "question": "3 yıldır aynı yerde çalışıyorum, yıllık iznim kaç gün olmalı?",
+      "answer_key": "1-5 yıl (5 dahil) hizmet için yıllık izin 14 günden az olamaz.",
+      "style": "gunluk"
+    },
+    {
+      "id": "i10",
+      "law": "4857",
+      "type": "tek_madde",
+      "expected_articles": [
+        56
+      ],
+      "question": "Patron yıllık iznimi 2'şer günlük parçalar halinde kullandırmak istiyor, bunu yapabilir mi?",
+      "answer_key": "Yıllık izin işverence bölünemez; tarafların anlaşmasıyla bir bölümü 10 günden az olmamak üzere bölümler hâlinde kullanılabilir.",
+      "style": "gunluk"
+    },
+    {
+      "id": "i11",
+      "law": "4857",
+      "type": "tek_madde",
+      "expected_articles": [
+        59
+      ],
+      "question": "İşten ayrıldım, kullanmadığım 20 günlük iznin parasını alabilir miyim?",
+      "answer_key": "Sözleşme hangi nedenle sona ererse ersin kullanılmayan yıllık izin ücreti, sona erme tarihindeki ücret üzerinden ödenir.",
+      "style": "gunluk"
+    },
+    {
+      "id": "i12",
+      "law": "4857",
+      "type": "tek_madde",
+      "expected_articles": [
+        74
+      ],
+      "question": "Hamileyim, doğum izni toplam kaç hafta?",
+      "answer_key": "Doğumdan önce 8, sonra 16 hafta olmak üzere toplam 24 hafta; çoğul gebelikte doğum öncesine 2 hafta eklenir.",
+      "style": "gunluk"
+    },
+    {
+      "id": "i13",
+      "law": "4857",
+      "type": "cok_madde",
+      "expected_articles": [
+        19,
+        18
+      ],
+      "question": "Patronum savunmamı almadan performansım düşük diye beni işten çıkardı. Bu doğru mu?",
+      "answer_key": "Davranış veya verimle ilgili nedenlerle, savunma alınmadan belirsiz süreli sözleşme feshedilemez; fesih bildirimi yazılı ve sebebi açık olmalıdır.",
+      "style": "gunluk"
+    },
+    {
+      "id": "i14",
+      "law": "4857",
+      "type": "tek_madde",
+      "expected_articles": [
+        20
+      ],
+      "question": "Haksız yere işten çıkarıldım. İşe iade için ne kadar sürem var, nereye başvurmalıyım?",
+      "answer_key": "Fesih bildiriminin tebliğinden itibaren 1 ay içinde arabulucuya başvurmak zorunludur; anlaşma olmazsa son tutanaktan itibaren 2 hafta içinde iş mahkemesinde dava açılır.",
+      "style": "gunluk"
+    },
+    {
+      "id": "i15",
+      "law": "4857",
+      "type": "tek_madde",
+      "expected_articles": [
+        21
+      ],
+      "question": "İşe iade davasını kazandım ama işveren beni işe geri almıyor. Ne olacak?",
+      "answer_key": "İşveren 1 ay içinde işe başlatmazsa en az 4, en çok 8 aylık ücret tutarında tazminat öder; ayrıca en çok 4 aya kadar boşta geçen süre ücreti ödenir.",
+      "style": "gunluk"
+    },
+    {
+      "id": "i16",
+      "law": "4857",
+      "type": "tek_madde",
+      "expected_articles": [
+        22
+      ],
+      "question": "İşverenim beni başka şehirdeki şubeye tayin etti. Kabul etmezsem ne olur?",
+      "answer_key": "Çalışma koşullarında esaslı değişiklik yazılı bildirilmeli; işçi 6 işgünü içinde yazılı kabul etmezse bağlamaz. İşveren ancak geçerli neden ve bildirim süresiyle fesih yapabilir.",
+      "style": "gunluk"
+    },
+    {
+      "id": "i17",
+      "law": "4857",
+      "type": "tek_madde",
+      "expected_articles": [
+        24
+      ],
+      "question": "İşverenim herkesin önünde bana hakaret etti. Tazminatımı kaybetmeden hemen istifa edebilir miyim?",
+      "answer_key": "İşverenin işçinin şeref ve namusuna dokunacak söz ve davranışları işçiye haklı nedenle derhal fesih hakkı verir (md. 24/II-b); süre sınırı md. 26.",
+      "style": "gunluk"
+    },
+    {
+      "id": "i18",
+      "law": "4857",
+      "type": "tek_madde",
+      "expected_articles": [
+        25
+      ],
+      "question": "İş arkadaşım işe sarhoş geldi diye hemen kovuldu. İşveren bunu yapabilir mi?",
+      "answer_key": "İşçinin işyerine sarhoş veya uyuşturucu madde almış olarak gelmesi işverene haklı nedenle derhal fesih hakkı verir (md. 25/II).",
+      "style": "gunluk"
+    },
+    {
+      "id": "i19",
+      "law": "4857",
+      "type": "tek_madde",
+      "expected_articles": [
+        28
+      ],
+      "question": "İşten ayrıldım ama işveren çalışma belgemi vermiyor. Ne yapabilirim?",
+      "answer_key": "İşveren işin çeşidi ve süresini gösteren çalışma belgesi vermek zorundadır; vaktinde verilmemesinden zarar gören işçi tazminat isteyebilir.",
+      "style": "gunluk"
+    },
+    {
+      "id": "i20",
+      "law": "4857",
+      "type": "tek_madde",
+      "expected_articles": [
+        46
+      ],
+      "question": "Hiç hafta tatili yapamıyorum, her gün çalıştırılıyorum. Bu yasal mı?",
+      "answer_key": "Yedi günlük zaman dilimi içinde kesintisiz en az 24 saat hafta tatili verilir.",
+      "style": "gunluk"
+    },
+    {
+      "id": "c01",
+      "law": null,
+      "type": "belirsiz",
+      "expected_articles": [],
+      "question": "Sözleşmeyi feshetmek için ne kadar önceden bildirimde bulunmam gerekir?",
+      "answer_key": "Kanun belirsiz: kira ise TBK 347/328-329, iş ise İş K. 17. Beklenen davranış: hangi sözleşme olduğunu sormak veya iki durumu ayırarak açıklamak.",
+      "acceptable_articles": {
+        "6098": [
+          347,
+          328,
+          329
+        ],
+        "4857": [
+          17
+        ]
+      },
+      "style": "gunluk"
+    },
+    {
+      "id": "c02",
+      "law": null,
+      "type": "belirsiz",
+      "expected_articles": [],
+      "question": "Sözleşmeyi haklı sebeple hemen feshedebilir miyim?",
+      "answer_key": "Kanun belirsiz: kira ise TBK 331/316, iş ise İş K. 24/25. Beklenen davranış: netleştirici soru sormak.",
+      "acceptable_articles": {
+        "6098": [
+          331,
+          316
+        ],
+        "4857": [
+          24,
+          25
+        ]
+      },
+      "style": "gunluk"
+    },
+    {
+      "id": "x01",
+      "law": null,
+      "type": "kapsam_disi",
+      "expected_articles": [],
+      "question": "10 yıldır çalıştığım işten çıkarıldım, kıdem tazminatımı nasıl hesaplarım?",
+      "answer_key": "Kıdem tazminatı 1475 sayılı eski İş Kanunu md. 14'te düzenlidir ve bilgi tabanında yok (4857 Geçici md. 6 yalnızca oraya atıf yapar). Beklenen davranış: uydurmamak, kaynağın bilgi tabanında olmadığını belirtmek.",
+      "style": "gunluk"
+    },
+    {
+      "id": "x02",
+      "law": null,
+      "type": "kapsam_disi",
+      "expected_articles": [],
+      "question": "Eşimden boşanmak istiyorum, nafaka ne kadar olur?",
+      "answer_key": "Türk Medeni Kanunu kapsamı, bilgi tabanında yok.",
+      "style": "gunluk"
+    },
+    {
+      "id": "x03",
+      "law": null,
+      "type": "kapsam_disi",
+      "expected_articles": [],
+      "question": "Trafik cezasına nasıl itiraz edebilirim?",
+      "answer_key": "Karayolları Trafik Kanunu / Kabahatler Kanunu kapsamı, bilgi tabanında yok.",
+      "style": "gunluk"
+    },
+    {
+      "id": "x04",
+      "law": null,
+      "type": "kapsam_disi",
+      "expected_articles": [],
+      "question": "Kira artışlarında %25 sınırı hâlâ geçerli mi?",
+      "answer_key": "TBK geçici maddesiyle getirilen ve süresi dolmuş sınırlama; bilgi tabanındaki kira hükümleri (299-378) içinde yok. Beklenen davranış: eski bilgiyi uydurmamak.",
+      "style": "gunluk"
+    },
+    {
+      "id": "x05",
+      "law": null,
+      "type": "kapsam_disi",
+      "expected_articles": [],
+      "question": "Komşumun ağacının dalları bahçeme taşıyor, ne yapabilirim?",
+      "answer_key": "Türk Medeni Kanunu komşuluk hukuku, bilgi tabanında yok.",
+      "style": "gunluk"
+    },
+    {
+      "id": "r01",
+      "law": "6098",
+      "type": "tek_madde",
+      "expected_articles": [
+        344
+      ],
+      "style": "madde_ref",
+      "question": "TBK 344 uyarınca yenilenen kira döneminde kira bedeli artışının üst sınırı nedir?",
+      "answer_key": "Artış, bir önceki kira yılının TÜFE on iki aylık ortalamasındaki değişimi geçemez; beş yıldan sonra hâkim hakkaniyete göre belirler."
+    },
+    {
+      "id": "r02",
+      "law": "6098",
+      "type": "tek_madde",
+      "expected_articles": [
+        315
+      ],
+      "style": "madde_ref",
+      "question": "TBK m. 315 kapsamında kiracının temerrüdünde kiraya verenin vermesi gereken süre ne kadardır?",
+      "answer_key": "Kiraya veren yazılı olarak süre verir; konut ve çatılı işyerlerinde en az otuz gün, diğerlerinde en az on gün; süre içinde ödenmezse sözleşme feshedilebilir."
+    },
+    {
+      "id": "r03",
+      "law": "6098",
+      "type": "tek_madde",
+      "expected_articles": [
+        352
+      ],
+      "style": "madde_ref",
+      "question": "6098 sayılı Kanun'un 352. maddesine göre iki haklı ihtar sebebiyle tahliye hangi koşullarda istenebilir?",
+      "answer_key": "Kira bedelini bir kira yılı içinde iki kez yazılı ihtara sebep olacak şekilde ödemeyen kiracının sözleşmesi, kira yılı sonundan itibaren bir ay içinde dava ile sona erdirilebilir."
+    },
+    {
+      "id": "r04",
+      "law": "6098",
+      "type": "tek_madde",
+      "expected_articles": [
+        347
+      ],
+      "style": "madde_ref",
+      "question": "TBK 347 ne düzenliyor?",
+      "answer_key": "Konut ve çatılı işyeri kiralarında kiracı bildirimde bulunmazsa sözleşme bir yıl uzar; kiraya veren süre bitimine dayanarak feshedemez, on yıllık uzama süresi sonunda feshedebilir."
+    },
+    {
+      "id": "r05",
+      "law": "6098",
+      "type": "tek_madde",
+      "expected_articles": [
+        312
+      ],
+      "style": "madde_ref",
+      "question": "TBK md. 312 uyarınca kiracılık hakkının tapuya şerhi mümkün müdür?",
+      "answer_key": "Taşınmaz kiralarında kiracılık hakkının tapu siciline şerhi sözleşmeyle kararlaştırılabilir; şerh sonraki malike karşı ileri sürülebilir."
+    },
+    {
+      "id": "r06",
+      "law": "4857",
+      "type": "tek_madde",
+      "expected_articles": [
+        17
+      ],
+      "style": "madde_ref",
+      "question": "İş Kanunu md. 17 uyarınca belirsiz süreli iş sözleşmelerinde bildirim süreleri nelerdir?",
+      "answer_key": "Kıdeme göre 2, 4, 6 ve 8 hafta; bildirim süresine uyulmazsa bu süreye ait ücret tutarında tazminat ödenir."
+    },
+    {
+      "id": "r07",
+      "law": "4857",
+      "type": "tek_madde",
+      "expected_articles": [
+        25
+      ],
+      "style": "madde_ref",
+      "question": "4857 s. K. m. 25/II kapsamında ahlak ve iyi niyet kurallarına uymayan haller nelerdir?",
+      "answer_key": "İşverenin haklı nedenle derhal fesih hakkını doğuran haller: yanıltma, hakaret, sataşma, cinsel taciz, hırsızlık, devamsızlık vb."
+    },
+    {
+      "id": "r08",
+      "law": "4857",
+      "type": "tek_madde",
+      "expected_articles": [
+        41
+      ],
+      "style": "madde_ref",
+      "question": "İş K. 41. madde fazla çalışma ücretini nasıl düzenler?",
+      "answer_key": "Haftalık 45 saati aşan çalışmalar fazla çalışmadır; her bir saat için ücret yüzde elli yükseltilerek ödenir; yıllık 270 saati geçemez; işçinin onayı gerekir."
+    },
+    {
+      "id": "r09",
+      "law": "4857",
+      "type": "tek_madde",
+      "expected_articles": [
+        29
+      ],
+      "style": "madde_ref",
+      "question": "4857 sayılı İş Kanunu 29. madde toplu işçi çıkarmada işverene hangi bildirim yükümlülüğünü getirir?",
+      "answer_key": "En az otuz gün önceden sendika temsilcilerine, bölge müdürlüğüne ve Türkiye İş Kurumuna yazılı bildirim; işçi sayısına göre eşikler."
+    },
+    {
+      "id": "r10",
+      "law": "4857",
+      "type": "tek_madde",
+      "expected_articles": [
+        32
+      ],
+      "style": "madde_ref",
+      "question": "İş Kanunu 32. maddeye göre ücret nasıl ve en geç ne zaman ödenir?",
+      "answer_key": "Ücret kural olarak Türk parası ile işyerinde veya banka hesabına ödenir; en geç ayda bir ödenir, süre sözleşmeyle bir haftaya kadar indirilebilir."
+    },
+    {
+      "id": "h01",
+      "law": "6098",
+      "type": "tek_madde",
+      "expected_articles": [
+        332
+      ],
+      "style": "hukuki",
+      "question": "Kiralananın tesliminden sonra kiracının iflası halinde kiraya verenin güvence isteme ve fesih hakkı nedir?",
+      "answer_key": "Kiraya veren işleyecek kira bedelleri için güvence isteyebilir; yazılı uygun süre içinde güvence verilmezse bildirim süresine uymadan feshedebilir."
+    },
+    {
+      "id": "h02",
+      "law": "6098",
+      "type": "tek_madde",
+      "expected_articles": [
+        309
+      ],
+      "style": "hukuki",
+      "question": "Kiralanan üzerinde üçüncü kişinin kiracının hakkıyla bağdaşmayan bir hak ileri sürmesi halinde kiraya verenin zapttan sorumluluğu nasıldır?",
+      "answer_key": "Kiraya veren kiracının bildirimi üzerine davayı üstlenmek ve kiracının zararını gidermekle yükümlüdür."
+    },
+    {
+      "id": "h03",
+      "law": "6098",
+      "type": "tek_madde",
+      "expected_articles": [
+        336
+      ],
+      "style": "hukuki",
+      "question": "Taşınmaz kiralarında kiraya verenin hapis hakkının kapsamı ve güvence altına aldığı kira alacakları nelerdir?",
+      "answer_key": "İşlemiş bir yıllık ve işlemekte olan altı aylık kira bedeli için kiralanandaki döşeme/kullanıma yarayan taşınırlar üzerinde hapis hakkı."
+    },
+    {
+      "id": "h04",
+      "law": "6098",
+      "type": "tek_madde",
+      "expected_articles": [
+        333
+      ],
+      "style": "hukuki",
+      "question": "Kiracının ölümü halinde mirasçıların kira sözleşmesini fesih hakkı var mıdır?",
+      "answer_key": "Mirasçılar yasal fesih bildirim süresine uyarak en yakın fesih dönemi sonu için feshedebilir."
+    },
+    {
+      "id": "h05",
+      "law": "6098",
+      "type": "tek_madde",
+      "expected_articles": [
+        345
+      ],
+      "style": "hukuki",
+      "question": "Kira bedelinin tespiti davasında dava açma süresi ve kararın hangi dönemden itibaren etkili olacağı nasıl belirlenir?",
+      "answer_key": "Dava her zaman açılabilir; yeni dönem başından en geç 30 gün önce açılırsa veya yazılı artış bildirimi yapılmışsa karar yeni dönemden itibaren etkilidir."
+    },
+    {
+      "id": "h06",
+      "law": "6098",
+      "type": "tek_madde",
+      "expected_articles": [
+        326
+      ],
+      "style": "hukuki",
+      "question": "Kira sözleşmesinden doğan alacaklarda takas hakkından önceden feragat edilebilir mi?",
+      "answer_key": "Kiracı ve kiraya veren takas hakkından önceden feragat edemez."
+    },
+    {
+      "id": "h07",
+      "law": "6098",
+      "type": "tek_madde",
+      "expected_articles": [
+        335
+      ],
+      "style": "hukuki",
+      "question": "Kiralananın geri verilmesi sırasında kiraya verenin gözden geçirme ve ayıp bildirim külfetine aykırılığın sonucu nedir?",
+      "answer_key": "Kiraya veren eksiklik ve ayıpları hemen yazılı bildirmezse kiracı sorumluluktan kurtulur; olağan incelemeyle anlaşılamayanlar hariç."
+    },
+    {
+      "id": "h08",
+      "law": "4857",
+      "type": "tek_madde",
+      "expected_articles": [
+        11
+      ],
+      "style": "hukuki",
+      "question": "Belirli süreli iş sözleşmesinin esaslı bir neden olmaksızın zincirleme olarak yenilenmesinin hukuki sonucu nedir?",
+      "answer_key": "Esaslı neden olmadıkça birden fazla üst üste (zincirleme) yapılan belirli süreli sözleşme başlangıçtan itibaren belirsiz süreli sayılır."
+    },
+    {
+      "id": "h09",
+      "law": "4857",
+      "type": "tek_madde",
+      "expected_articles": [
+        21
+      ],
+      "style": "hukuki",
+      "question": "Feshin geçersizliğine karar verilmesi halinde işe başlatmama tazminatı ve boşta geçen süre ücreti ne kadardır?",
+      "answer_key": "İşçi bir ay içinde işe başlatılmazsa 4-8 aylık ücret tutarında tazminat; kesinleşmeye kadar en çok 4 aya kadar ücret ve diğer haklar ödenir."
+    },
+    {
+      "id": "h10",
+      "law": "4857",
+      "type": "tek_madde",
+      "expected_articles": [
+        6
+      ],
+      "style": "hukuki",
+      "question": "İşyeri devrinde devreden ve devralan işverenin işçilik alacaklarından sorumluluğu nasıl düzenlenmiştir?",
+      "answer_key": "İş sözleşmeleri tüm hak ve borçlarıyla devralana geçer; devirden önce doğan ve ödenmemiş borçlardan ikisi birlikte sorumludur, devredenin sorumluluğu iki yılla sınırlıdır."
+    },
+    {
+      "id": "h11",
+      "law": "4857",
+      "type": "tek_madde",
+      "expected_articles": [
+        2
+      ],
+      "style": "hukuki",
+      "question": "Asıl işveren-alt işveren ilişkisinde muvazaa hangi hallerde kabul edilir ve sonucu nedir?",
+      "answer_key": "Asıl iş bölünerek alt işverene verilemez, önceden çalışan işçiyle alt işveren ilişkisi kurulamaz; muvazaa halinde alt işveren işçileri başlangıçtan itibaren asıl işverenin işçisi sayılır."
+    },
+    {
+      "id": "h12",
+      "law": "4857",
+      "type": "tek_madde",
+      "expected_articles": [
+        13
+      ],
+      "style": "hukuki",
+      "question": "Kısmi süreli iş sözleşmesiyle çalışan işçiye bölünebilir menfaatler bakımından nasıl ödeme yapılır?",
+      "answer_key": "Ayırımı haklı kılan neden olmadıkça farklı işlem yapılamaz; ücret ve bölünebilir menfaatler çalıştığı süreye orantılı ödenir."
+    },
+    {
+      "id": "h13",
+      "law": "4857",
+      "type": "tek_madde",
+      "expected_articles": [
+        64
+      ],
+      "style": "hukuki",
+      "question": "Telafi çalışması hangi hallerde yaptırılabilir ve fazla çalışma sayılır mı?",
+      "answer_key": "Zorunlu nedenlerle işin durması, tatil öncesi/sonrası veya işçinin talebiyle izin hallerinde işveren dört ay içinde telafi çalışması yaptırabilir; fazla çalışma sayılmaz."
+    },
+    {
+      "id": "h14",
+      "law": "4857",
+      "type": "tek_madde",
+      "expected_articles": [
+        5
+      ],
+      "style": "hukuki",
+      "question": "Eşit davranma ilkesine aykırılık halinde işçinin talep edebileceği ayrımcılık tazminatı ne kadardır?",
+      "answer_key": "İşçi dört aya kadar ücreti tutarında uygun bir tazminattan başka yoksun bırakıldığı haklarını da talep edebilir."
+    }
+  ]
+}
