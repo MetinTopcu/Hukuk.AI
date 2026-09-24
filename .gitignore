@@ -370,3 +370,6 @@ data/raw/*.txt
 data/parsed/
 data/chunks/
 data/eval/results/
+
+# Lokal gizli ayarlar (docker-compose sifresi vb.); ornek: .env.example
+.env
