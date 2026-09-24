@@ -1,13 +1,20 @@
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Hukuk.AI.Data;
 using Hukuk.AI.Data.Entities;
 using Hukuk.AI.Ingestion.Chunking;
+using Hukuk.AI.Ingestion.Embedding;
 using Hukuk.AI.Ingestion.Parsing;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Configuration;
 using Microsoft.ML.Tokenizers;
+using Microsoft.SemanticKernel;
 
 // Adım 1: data/raw/*.html -> data/parsed/*.json (bilgi tabanına girecek maddeler)
 // Adım 2: parse edilen maddeler -> data/chunks/{A,B,C,D}.json (karşılaştırılacak chunk stratejileri)
+// Adım 3+4 (sadece "dotnet run -- embed" ile, ücretli API çağrısı): chunk'lar embed edilip knowledge_chunks'a yazılır
 
 var dataDir = Path.Combine(FindRepoRoot(), "data");
 
@@ -63,14 +70,52 @@ IChunker[] chunkers =
 
 Directory.CreateDirectory(Path.Combine(dataDir, "chunks"));
 
+var chunksByStrategy = new Dictionary<string, List<Chunk>>();
+
 foreach (var chunker in chunkers)
 {
-    var chunks = keptByLaw.SelectMany(kv => chunker.Split(kv.Key, kv.Value)).ToList();
+    var chunks = chunksByStrategy[chunker.Name] = keptByLaw.SelectMany(kv => chunker.Split(kv.Key, kv.Value)).ToList();
     var outPath = Path.Combine(dataDir, "chunks", $"{chunker.Name}.json");
     File.WriteAllText(outPath, JsonSerializer.Serialize(new { Strategy = chunker.Name, Count = chunks.Count, Chunks = chunks }, jsonOptions));
 
     var tokens = chunks.Select(c => c.TokenCount).ToList();
     Console.WriteLine($"Strateji {chunker.Name}: {chunks.Count} chunk, token min {tokens.Min()} / ort {tokens.Average():F0} / max {tokens.Max()} -> {outPath}");
+}
+
+if (!args.Contains("embed"))
+    return;
+
+var configuration = new ConfigurationBuilder().AddUserSecrets<Program>().Build();
+string Required(string key) => configuration[key] ?? throw new InvalidOperationException($"{key} ayarı bulunamadı (user secrets).");
+
+// SK'nın embedding generator'ı hâlâ experimental (SKEXP0010) işaretli.
+#pragma warning disable SKEXP0010
+var kernel = Kernel.CreateBuilder()
+    .AddAzureOpenAIEmbeddingGenerator(
+        deploymentName: Required("AI:EmbeddingDeploymentName"),
+        endpoint: Required("AI:AzureOpenAIEndpoint"),
+        apiKey: Required("AI:AzureOpenAIKey"),
+        dimensions: 1536) // model varsayılanı 3072; kolon vector(1536)
+    .Build();
+#pragma warning restore SKEXP0010
+var generator = kernel.GetRequiredService<IEmbeddingGenerator<string, Embedding<float>>>();
+
+var dbOptions = new DbContextOptionsBuilder<AppDbContext>().UseHukukAiPostgres(Required("ConnectionStrings:DefaultConnection")).Options;
+await using var db = new AppDbContext(dbOptions);
+var embedder = new ChunkEmbedder(generator, db, lawNames, keptByLaw);
+
+var strategies = new Dictionary<string, ChunkStrategy>
+{
+    ["A"] = ChunkStrategy.A_Madde,
+    ["B"] = ChunkStrategy.B_SabitToken,
+    ["C"] = ChunkStrategy.C_MaddeBaglamli,
+    ["D"] = ChunkStrategy.D_Hibrit,
+};
+
+foreach (var (name, chunks) in chunksByStrategy)
+{
+    var written = await embedder.ReplaceAsync(strategies[name], chunks);
+    Console.WriteLine($"Strateji {name}: {written} satır knowledge_chunks'a yazıldı");
 }
 
 static string FindRepoRoot()
