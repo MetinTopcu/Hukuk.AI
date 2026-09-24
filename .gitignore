@@ -369,3 +369,4 @@ data/raw/*.txt
 # Ingestion ciktisi: kod her calistirmada yeniden uretir
 data/parsed/
 data/chunks/
+data/eval/results/
