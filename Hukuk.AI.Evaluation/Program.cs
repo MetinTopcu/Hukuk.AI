@@ -85,6 +85,12 @@ if (args.Contains("hnsw"))
     return;
 }
 
+if (args.Contains("bench"))
+{
+    await ScaleBenchmark.RunAsync(Required("ConnectionStrings:DefaultConnection"), vectors.Select(x => x.combined).ToList());
+    return;
+}
+
 var scored = vectors.Where(x => x.q.IsScored).ToList();
 Console.WriteLine($"\n{evalSet.Questions.Count} soru, metriklere giren {scored.Count} (belirsiz/kapsam dışı hariç)\n");
 
