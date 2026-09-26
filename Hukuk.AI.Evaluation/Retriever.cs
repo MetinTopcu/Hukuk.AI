@@ -27,6 +27,30 @@ public class Retriever(AppDbContext db)
         return rows.Select(r => new RetrievedChunk(r.Id, [.. r.Articles], r.TokenCount, 1 - r.Distance)).ToList();
     }
 
+    // HNSW (yaklaşık) arama, sadece D (partial index). WHERE koşulu indeks filtresiyle birebir aynı olmalı ki
+    // planner indeksi seçebilsin. ef_search: aramada tutulan aday sayısı; k'dan küçükse en fazla ef_search sonuç döner.
+    // Tablo küçük olduğu için planner exact taramayı (seq scan veya strateji B-tree'si + sort) daha ucuz bulur;
+    // ölçümde HNSW'yi zorlamak için ikisi de kapatılır (HNSW sonucu zaten sıralı verdiği için sort gerekmez).
+    // usedIndex: EXPLAIN planında HNSW indeksi görünüyor mu (ölçümün gerçekten indeksten geldiğinin kontrolü).
+    public async Task<(List<Guid> ids, bool usedIndex)> HnswSearchAsync(Vector query, int k, int efSearch)
+    {
+        await using var tx = await db.Database.BeginTransactionAsync();
+        await db.Database.ExecuteSqlRawAsync($"SET LOCAL hnsw.ef_search = {efSearch}; SET LOCAL enable_seqscan = off; SET LOCAL enable_sort = off;");
+
+        var plan = await db.Database.SqlQuery<string>($"""
+            EXPLAIN SELECT id FROM knowledge_chunks WHERE chunk_strategy = 'D_Hibrit'
+            ORDER BY embedding <=> {query} LIMIT {k}
+            """).ToListAsync();
+
+        var ids = await db.Database.SqlQuery<Guid>($"""
+            SELECT id AS "Value" FROM knowledge_chunks WHERE chunk_strategy = 'D_Hibrit'
+            ORDER BY embedding <=> {query} LIMIT {k}
+            """).ToListAsync();
+
+        await tx.CommitAsync();
+        return (ids, plan.Any(line => line.Contains("ix_knowledge_chunks_embedding_hnsw_d")));
+    }
+
     // BM25 kelime araması (Postgres yerleşik ts_rank_cd'de IDF yok; sıradan kelimeler ve uzun maddeler öne çıkıyordu).
     // Kökler 'turkish' sözlüğüyle çıkarılır (search_vector). Koleksiyon istatistikleri (N, df, ortalama uzunluk)
     // aynı strateji (ve varsa kanun filtresi) içindeki chunk'lardan hesaplanır. Similarity alanında BM25 puanı döner.

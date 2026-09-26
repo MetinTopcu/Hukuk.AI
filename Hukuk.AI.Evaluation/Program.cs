@@ -61,6 +61,30 @@ var dbOptions = new DbContextOptionsBuilder<AppDbContext>().UseHukukAiPostgres(R
 await using var db = new AppDbContext(dbOptions);
 var retriever = new Retriever(db);
 
+// "dotnet run -- hnsw": HNSW'nin exact aramaya göre kaybı. Aynı soru vektörleriyle (Birlesik) iki arama yapılır;
+// recall@k = HNSW'nin top-k'sında exact top-k'dan kaç chunk var. Sadece D (indeks sadece onda).
+if (args.Contains("hnsw"))
+{
+    int[] ks = [10, fetchCount];
+    Console.WriteLine($"\n== HNSW vs exact (D, {vectors.Count} soru) ==");
+    Console.WriteLine($"{"ef_search",-12}" + string.Join("", ks.Select(k => $"{"recall@" + k,12}")) + $"{"indeks",10}");
+    foreach (var ef in new[] { 40, 64, 100, 200 })
+    {
+        var sums = new double[ks.Length];
+        var allUsedIndex = true;
+        foreach (var x in vectors)
+        {
+            var exact = await retriever.SearchAsync(x.combined, ChunkStrategy.D_Hibrit, null, fetchCount);
+            var (hnsw, usedIndex) = await retriever.HnswSearchAsync(x.combined, fetchCount, ef);
+            allUsedIndex &= usedIndex;
+            for (var i = 0; i < ks.Length; i++)
+                sums[i] += (double)exact.Take(ks[i]).Count(e => hnsw.Take(ks[i]).Contains(e.Id)) / ks[i];
+        }
+        Console.WriteLine($"{ef,-12}" + string.Join("", sums.Select(s => $"{s / vectors.Count,12:F3}")) + $"{(allUsedIndex ? "evet" : "HAYIR"),10}");
+    }
+    return;
+}
+
 var scored = vectors.Where(x => x.q.IsScored).ToList();
 Console.WriteLine($"\n{evalSet.Questions.Count} soru, metriklere giren {scored.Count} (belirsiz/kapsam dışı hariç)\n");
 

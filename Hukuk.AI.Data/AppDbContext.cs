@@ -23,7 +23,21 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(x => x.ChunkStrategy).HasConversion<string>().HasMaxLength(30);
             e.Property(x => x.Embedding).HasColumnType("vector(1536)");
             e.HasGeneratedTsVectorColumn(x => x.SearchVector, "turkish", x => new { x.Content });
-            // İndeksler (B-tree, HNSW, GIN) ölçümlerden sonra eklenecek.
+
+            // HNSW (yaklaşık en yakın komşu), sadece kazanan strateji D için (partial index).
+            // Tüm tabloda tek indeks olsaydı HNSW ef_search kadar aday bulup strateji filtresini sonra uygulardı;
+            // adayların ~¼'ü D olduğundan istenen sayıda sonuç dönmezdi. Sorgu WHERE'i bu filtreyle birebir eşleşmeli.
+            e.HasIndex(x => x.Embedding)
+                .HasDatabaseName("ix_knowledge_chunks_embedding_hnsw_d")
+                .HasMethod("hnsw")
+                .HasOperators("vector_cosine_ops")
+                .HasStorageParameter("m", 16)
+                .HasStorageParameter("ef_construction", 64)
+                .HasFilter("chunk_strategy = 'D_Hibrit'");
+
+            // Her sorgu stratejiye göre, isteğe bağlı olarak kanuna göre filtreliyor.
+            e.HasIndex(x => new { x.ChunkStrategy, x.Law });
+            // articles GIN indeksi (owned JSON olduğu için EF'te tanımlanamıyor) migration'da SQL ile.
         });
     }
 }
