@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Hukuk.AI.Data\Hukuk.AI.Data.csproj" />
+    <ProjectReference Include="..\Hukuk.AI.Retrieval\Hukuk.AI.Retrieval.csproj" />
   </ItemGroup>
 
   <ItemGroup>

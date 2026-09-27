@@ -1,7 +1,7 @@
 using System.Text.RegularExpressions;
 using Hukuk.AI.Data.Entities;
 
-namespace Hukuk.AI.Evaluation;
+namespace Hukuk.AI.Retrieval;
 
 // Soruda açık madde atfı var mı ("TBK 344", "İş K. m. 17")? Varsa o madde aranmadan doğrudan metadata ile getirilir.
 // Ölçüm: vektör araması da BM25 de "TBK 347 ne düzenliyor?" sorusunda md. 347'yi bulamadı; numarayı anlamsal arama çözemez.

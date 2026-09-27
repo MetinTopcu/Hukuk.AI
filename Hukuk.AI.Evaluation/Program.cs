@@ -4,6 +4,7 @@ using System.Text.Json.Serialization;
 using Hukuk.AI.Data;
 using Hukuk.AI.Data.Entities;
 using Hukuk.AI.Evaluation;
+using Hukuk.AI.Retrieval;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
@@ -43,7 +44,7 @@ var kernel = Kernel.CreateBuilder()
 #pragma warning restore SKEXP0010
 var generator = kernel.GetRequiredService<IEmbeddingGenerator<string, Embedding<float>>>();
 
-var rewriter = new QueryRewriter(kernel.GetRequiredService<IChatCompletionService>(),
+var rewriter = new RewriteCache(new QueryRewriter(kernel.GetRequiredService<IChatCompletionService>()),
     Path.Combine(dataDir, "eval", $"rewrites-v{QueryRewriter.PromptVersion}.json"));
 Console.WriteLine("Sorular kanun diline yeniden yazılıyor (cache'te olmayanlar)...");
 var rewrites = await rewriter.RewriteAllAsync(evalSet.Questions);
@@ -98,7 +99,7 @@ Console.WriteLine($"\n{evalSet.Questions.Count} soru, metriklere giren {scored.C
 // Önceki turlarda elenenler: orijinal soru, sadece yeniden yazım, vektör-vektör RRF, ts_rank_cd full-text,
 // BM25/hybrid'in orijinal soruyla olanı (hepsinde Birlesik daha iyiydi), Hibrit-50/70 ve atıfta hybrid'e
 // yönlendirme (eval v2'de vektörü geçemedi). BM25 ve Hibrit-80 bilgi tabanı büyüyünce yeniden ölçmek için duruyor.
-string Both(EvalQuestion q) => q.Question + "\n" + rewrites[q.Id];
+string Both(EvalQuestion q) => QueryRewriter.Combine(q.Question, rewrites[q.Id]);
 
 async Task<List<RetrievedChunk>> HybridAsync(EvalQuestion q, Vector v, ChunkStrategy s, string? law, double vectorWeight) =>
     Retriever.FuseRrf([
@@ -118,8 +119,7 @@ var queryMethods = new (string Name, Func<(EvalQuestion q, Vector original, Vect
         var references = QueryRouter.Parse(x.q.Question);
         if (references.Count == 0)
             return vector;
-        var direct = await retriever.GetByArticlesAsync(references, s);
-        return [.. direct, .. vector.Where(v => direct.All(d => d.Id != v.Id))];
+        return KnowledgeSearch.PrependDirect(await retriever.GetByArticlesAsync(references, s), vector);
     }),
 };
 
@@ -156,7 +156,7 @@ foreach (var filtered in modes)
 
             foreach (var (q, results) in perQuestion)
             {
-                var context = WithinBudget(results, budget);
+                var context = KnowledgeSearch.WithinBudget(results, budget);
                 var ranked = context.Select(r => r.Articles).ToList();
                 // Eval setindeki numaralar asıl madde numaraları.
                 var expected = q.ExpectedArticles.Select(n => new ArticleRef(ArticleType.Asil, n)).ToHashSet();
@@ -210,21 +210,6 @@ File.WriteAllText(outPath, JsonSerializer.Serialize(details, new JsonSerializerO
     Converters = { new JsonStringEnumConverter() },
 }));
 Console.WriteLine($"\nSoru bazlı detaylar -> {outPath}");
-
-// Sırayla ekle, sığmayan ilk chunk'ta dur. İlk chunk bütçeden büyük olsa bile alınır (yoksa bağlam boş kalır).
-static List<RetrievedChunk> WithinBudget(List<RetrievedChunk> results, int budget)
-{
-    var context = new List<RetrievedChunk>();
-    var used = 0;
-    foreach (var r in results)
-    {
-        if (context.Count > 0 && used + r.TokenCount > budget)
-            break;
-        context.Add(r);
-        used += r.TokenCount;
-    }
-    return context;
-}
 
 static string Label(ArticleRef r) => r.Type switch
 {

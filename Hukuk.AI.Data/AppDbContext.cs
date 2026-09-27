@@ -44,8 +44,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
 public static class DbContextOptionsExtensions
 {
-    // API ve Ingestion aynı ayarları kullansın diye tek yerde
-    public static DbContextOptionsBuilder<AppDbContext> UseHukukAiPostgres(this DbContextOptionsBuilder<AppDbContext> builder, string connectionString)
+    // API, Ingestion ve Evaluation aynı ayarları kullansın diye tek yerde. Generic: hem elle kurulan
+    // DbContextOptionsBuilder<AppDbContext> hem de DI'daki AddDbContext'in verdiği builder ile çalışır.
+    public static TBuilder UseHukukAiPostgres<TBuilder>(this TBuilder builder, string connectionString)
+        where TBuilder : DbContextOptionsBuilder
     {
         builder.UseNpgsql(connectionString, o => o.UseVector())
                .UseSnakeCaseNamingConvention();

@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Bilgi tabanı araması ve cevap üretimi: API ve Evaluation aynı kodu kullanır (eval'de ölçülen = canlıda çalışan) -->
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Hukuk.AI.Data\Hukuk.AI.Data.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SemanticKernel" Version="1.80.1" />
+  </ItemGroup>
+
+</Project>

@@ -1,34 +1,45 @@
-using Microsoft.Extensions.Configuration;
+using Hukuk.AI.Data;
+using Hukuk.AI.Retrieval;
 using Microsoft.SemanticKernel;
 
-var configuration = new ConfigurationBuilder()
-    .SetBasePath(AppContext.BaseDirectory)
-    .AddJsonFile("appsettings.json", optional: true)
-    .AddUserSecrets<Program>()
-    .Build();
+var builder = WebApplication.CreateBuilder(args);
+var configuration = builder.Configuration; // Development'ta user secrets otomatik okunur
 
-var endpoint = configuration["AI:AzureOpenAIEndpoint"];
-var apiKey = configuration["AI:AzureOpenAIKey"];
+// appsettings.json'daki boş değerler sadece yer tutucu; asıl değerler user secrets'ta.
+string Required(string key) => configuration[key] is { Length: > 0 } value ? value : throw new InvalidOperationException($"{key} ayarı bulunamadı (user secrets).");
 
-var chatModelId = configuration["AI:ModelId"]
-    ?? throw new InvalidOperationException("AI:ModelId ayarı bulunamadı.");
+builder.Services.AddDbContext<AppDbContext>(o => o.UseHukukAiPostgres(Required("ConnectionStrings:DefaultConnection")));
 
-// 2. Şefi (Kernel) yaratalım ve ona Azure OpenAI'ı bağlayalım
-var builder = Kernel.CreateBuilder();
-builder.AddAzureOpenAIChatCompletion(
-    deploymentName: chatModelId,
-    endpoint: endpoint!,
-    apiKey: apiKey!);
+// Chunk'larla aynı embedding modeli ve boyut; farklı olursa vektörler karşılaştırılamaz.
+#pragma warning disable SKEXP0010
+builder.Services.AddKernel()
+    .AddAzureOpenAIChatCompletion(
+        deploymentName: Required("AI:ChatDeploymentName"),
+        endpoint: Required("AI:AzureOpenAIEndpoint"),
+        apiKey: Required("AI:AzureOpenAIKey"))
+    .AddAzureOpenAIEmbeddingGenerator(
+        deploymentName: Required("AI:EmbeddingDeploymentName"),
+        endpoint: Required("AI:AzureOpenAIEndpoint"),
+        apiKey: Required("AI:AzureOpenAIKey"),
+        dimensions: 1536);
+#pragma warning restore SKEXP0010
 
-var kernel = builder.Build();
+// DbContext scoped olduğu için ona bağlı her şey de scoped.
+builder.Services.AddScoped<Retriever>();
+builder.Services.AddScoped<QueryRewriter>();
+builder.Services.AddScoped<KnowledgeSearch>();
+builder.Services.AddScoped<KnowledgeBasePlugin>();
+builder.Services.AddScoped<LegalAnswerService>();
 
-Console.WriteLine("Hukuk.AI Başlatılıyor...\n");
+builder.Services.AddControllers();
+builder.Services.AddOpenApi();
 
-var prompt = "Sen kıdemli bir avukatsın. 'Mücbir Sebep' nedir, sadece 1 cümleyle açıkla.";
-Console.WriteLine($"Soru: {prompt}");
-Console.WriteLine("Cevap bekleniyor...\n");
+var app = builder.Build();
 
-var result = await kernel.InvokePromptAsync(prompt);
+if (app.Environment.IsDevelopment())
+    app.MapOpenApi();
 
-Console.WriteLine($"Hukuk.AI: {result}");
-Console.ReadLine();
+app.UseHttpsRedirection();
+app.MapControllers();
+
+app.Run();

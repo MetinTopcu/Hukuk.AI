@@ -5,9 +5,11 @@ using Microsoft.EntityFrameworkCore;
 using Pgvector;
 using Pgvector.EntityFrameworkCore;
 
-namespace Hukuk.AI.Evaluation;
+namespace Hukuk.AI.Retrieval;
 
 public record RetrievedChunk(Guid Id, ArticleRef[] Articles, int TokenCount, double Similarity);
+
+public record ChunkText(Guid Id, string Law, string LawName, ArticleRef[] Articles, string Heading, string Content);
 
 // Exact (index'siz) cosine araması: ölçümlerin referans noktası. HNSW eklenince onun recall kaybı buna göre ölçülecek.
 public class Retriever(AppDbContext db)
@@ -127,6 +129,19 @@ public class Retriever(AppDbContext db)
         }
 
         return result.DistinctBy(c => c.Id).ToList();
+    }
+
+    // Seçilen chunk'ların metni ve künyesi, verilen sırayla (aramalar embedding'i taşımamak için sadece Id döndürüyor).
+    public async Task<List<ChunkText>> GetTextsAsync(IReadOnlyList<Guid> ids)
+    {
+        var chunks = await db.KnowledgeChunks.AsNoTracking()
+            .Where(c => ids.Contains(c.Id))
+            .Select(c => new { c.Id, c.Law, c.LawName, c.Articles, c.Heading, c.Content })
+            .ToDictionaryAsync(c => c.Id);
+
+        return ids.Select(id => chunks[id])
+            .Select(c => new ChunkText(c.Id, c.Law, c.LawName, [.. c.Articles], c.Heading, c.Content))
+            .ToList();
     }
 
     // Ağırlıklı Reciprocal Rank Fusion: chunk puanı = Σ ağırlık / (k + sıra). k=60 literatürdeki standart değer.
