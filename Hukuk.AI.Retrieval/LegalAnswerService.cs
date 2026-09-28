@@ -1,7 +1,10 @@
+using System.Diagnostics;
 using System.Text;
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
 
 namespace Hukuk.AI.Retrieval;
 
@@ -10,12 +13,21 @@ public record LegalAnswer(string Answer, List<KnowledgeSource> Citations);
 // Sabit RAG pipeline'ı: bilgi tabanı araması -> kaynaklarla cevap -> cevapta atıf yapılan kaynaklar.
 public partial class LegalAnswerService
 {
+    // v2: kapsam dışı sorularda ilgisiz kaynakları aktarıp hepsine atıf yapıyordu ("trafik cezası" -> İş K. idari para cezaları).
+    public const int PromptVersion = 2;
+
+    // Cevap eval'i (2026-09-27, bütçe 4000): minimal puan .933 / 3.3 sn, low .933 / 5.3 sn, medium .963 / 11.9 sn.
+    // Fark gürültü sınırında (67 soruda ~4 puan, hakem de aynı model); hız için minimal seçildi.
+    public const string AnswerReasoningEffort = "minimal";
+
     private const string SystemPrompt =
         """
         Sen Türk mevzuatı hakkında bilgi veren bir hukuk asistanısın. Soruyu SADECE verilen kaynaklara dayanarak cevapla.
         Kurallar:
         - Her hukuki bilginin sonuna dayandığı kaynağın numarasını köşeli parantezle yaz, örn: [1] veya [1][3].
         - Kaynaklarda olmayan bilgi ekleme. Kaynaklar soruyu cevaplamaya yetmiyorsa bunu açıkça söyle.
+        - Kaynaklar sorunun konusuyla ilgili değilse sadece bu konuda bilgi veremediğini söyle; kaynaklardaki ilgisiz
+          hükümleri aktarma, atıf yapma, konuyu değiştirme.
         - Madde metnini aynen kopyalama; sade Türkçeyle açıkla, gerekirse kısa alıntı yap.
         - Cevap somut olayın ayrıntılarına göre değişebiliyorsa hangi koşula bağlı olduğunu belirt.
         - Kısa ve net ol.
@@ -23,13 +35,15 @@ public partial class LegalAnswerService
 
     private readonly Kernel _kernel;
     private readonly IChatCompletionService _chat;
+    private readonly ILogger<LegalAnswerService> _logger;
 
-    public LegalAnswerService(Kernel kernel, KnowledgeBasePlugin knowledgeBase)
+    public LegalAnswerService(Kernel kernel, KnowledgeBasePlugin knowledgeBase, ILogger<LegalAnswerService> logger)
     {
         // Kernel transient (her istekte yeni örnek); scoped plugin'i (DbContext kullanıyor) sadece bu örneğe ekliyoruz.
         _kernel = kernel;
         _kernel.Plugins.AddFromObject(knowledgeBase, KnowledgeBasePlugin.PluginName);
         _chat = kernel.GetRequiredService<IChatCompletionService>();
+        _logger = logger;
     }
 
     public async Task<LegalAnswer> AnswerAsync(string question, CancellationToken cancellationToken = default)
@@ -39,9 +53,20 @@ public partial class LegalAnswerService
             KnowledgeBasePlugin.PluginName, KnowledgeBasePlugin.SearchFunction,
             new KernelArguments { ["question"] = question }, cancellationToken) ?? [];
 
+        var sw = Stopwatch.StartNew();
+        var result = await GenerateAsync(question, sources, AnswerReasoningEffort, cancellationToken);
+        _logger.LogInformation("Cevap üretimi {AnswerMs} ms", sw.ElapsedMilliseconds);
+        return result;
+    }
+
+    // Kaynaklar hazırken sadece cevap üretimi (eval farklı bütçe/reasoning ayarlarını bununla karşılaştırır).
+    // reasoningEffort null: modelin varsayılanı (gpt-5-mini'de medium).
+    public async Task<LegalAnswer> GenerateAsync(string question, List<KnowledgeSource> sources, string? reasoningEffort = null, CancellationToken cancellationToken = default)
+    {
         var history = new ChatHistory(SystemPrompt);
         history.AddUserMessage(BuildUserMessage(question, sources));
-        var reply = await _chat.GetChatMessageContentAsync(history, kernel: _kernel, cancellationToken: cancellationToken);
+        var settings = new OpenAIPromptExecutionSettings { ReasoningEffort = reasoningEffort };
+        var reply = await _chat.GetChatMessageContentAsync(history, settings, _kernel, cancellationToken);
         var answer = reply.Content?.Trim() ?? throw new InvalidOperationException("Boş yanıt.");
 
         // Sadece cevapta gerçekten atıf yapılan kaynaklar döner; LLM'in uydurduğu numaralar ([9] gibi) elenir.

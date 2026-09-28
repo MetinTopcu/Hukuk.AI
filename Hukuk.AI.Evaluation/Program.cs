@@ -8,6 +8,7 @@ using Hukuk.AI.Retrieval;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Pgvector;
@@ -89,6 +90,22 @@ if (args.Contains("hnsw"))
 if (args.Contains("bench"))
 {
     await ScaleBenchmark.RunAsync(Required("ConnectionStrings:DefaultConnection"), vectors.Select(x => x.combined).ToList());
+    return;
+}
+
+if (args.Contains("sure"))
+{
+    await AnswerEval.MeasureSearchLatencyAsync(new QueryRewriter(kernel.GetRequiredService<IChatCompletionService>()), generator, evalSet.Questions);
+    return;
+}
+
+if (args.Contains("cevap"))
+{
+    var coreRewriter = new QueryRewriter(kernel.GetRequiredService<IChatCompletionService>());
+    var search = new KnowledgeSearch(retriever, coreRewriter, generator, NullLogger<KnowledgeSearch>.Instance);
+    var answers = new LegalAnswerService(kernel.Clone(), new KnowledgeBasePlugin(search), NullLogger<LegalAnswerService>.Instance);
+    await AnswerEval.RunAsync(answers, search, kernel.GetRequiredService<IChatCompletionService>(),
+        vectors.Select(x => (x.q, x.combined)).ToList(), Path.Combine(dataDir, "eval", "results"));
     return;
 }
 

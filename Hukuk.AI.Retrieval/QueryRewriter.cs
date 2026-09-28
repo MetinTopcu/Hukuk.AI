@@ -23,13 +23,16 @@ public class QueryRewriter(IChatCompletionService chat)
         - Tek paragraf, en fazla 60 kelime, Türkçe.
         """;
 
-    public async Task<string> RewriteAsync(string question, CancellationToken cancellationToken = default)
+    public async Task<string> RewriteAsync(string question, CancellationToken cancellationToken = default) =>
+        await RewriteAsync(question, "low", cancellationToken);
+
+    public async Task<string> RewriteAsync(string question, string reasoningEffort, CancellationToken cancellationToken = default)
     {
         var history = new ChatHistory(SystemPrompt);
         history.AddUserMessage(question);
 
-        // gpt-5-mini reasoning modeli; basit bir dönüşüm için düşük efor yeterli.
-        var settings = new OpenAIPromptExecutionSettings { ReasoningEffort = "low" };
+        // gpt-5-mini reasoning modeli; basit bir dönüşüm için düşük efor yeterli (ölçülen rewrites-v1 "low" ile üretildi).
+        var settings = new OpenAIPromptExecutionSettings { ReasoningEffort = reasoningEffort };
         var reply = await chat.GetChatMessageContentAsync(history, settings, cancellationToken: cancellationToken);
         return reply.Content?.Trim() ?? throw new InvalidOperationException("Boş yanıt.");
     }
