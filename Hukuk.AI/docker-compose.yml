@@ -14,5 +14,26 @@ services:
       - pgdata_ai:/var/lib/postgresql/data
     restart: unless-stopped
 
+  # Cache (embedding + semantic cache). Redis 8: vektör araması (Query Engine) gömülü.
+  # RDB snapshot (5 dk'da >=10 yazım): restart'ta cache sıfırlanmaz. Streams gelince AOF açılacak.
+  # volatile-lru: bellek dolunca sadece TTL'li anahtarlar (cache) silinir.
+  # 6379'da Windows'a kurulu eski Redis çalışıyor, bu yüzden 6380.
+  redis-ai:
+    image: redis:8
+    container_name: hukuk_ai_redis
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD:?Hukuk.AI/.env dosyasinda REDIS_PASSWORD tanimlayin}
+      --save 300 10
+      --appendonly no
+      --maxmemory 512mb
+      --maxmemory-policy volatile-lru
+    ports:
+      - "6380:6379"
+    volumes:
+      - redisdata_ai:/data
+    restart: unless-stopped
+
 volumes:
   pgdata_ai:
+  redisdata_ai:

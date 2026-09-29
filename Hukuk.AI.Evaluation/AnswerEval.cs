@@ -45,16 +45,21 @@ public static class AnswerEval
 
     public static async Task RunAsync(
         LegalAnswerService answers, KnowledgeSearch search, IChatCompletionService chat,
-        List<(EvalQuestion q, Vector combined)> questions, string resultsDir)
+        List<(EvalQuestion q, Vector vector)> questions, string resultsDir, bool liveOnly = false)
     {
         Console.WriteLine($"Kaynaklar aranıyor ({questions.Count} soru)...");
         var sources = new Dictionary<string, List<KnowledgeSource>>();
         foreach (var (q, v) in questions) // DbContext thread-safe değil: sırayla
             sources[q.Id] = await search.SearchAsync(q.Question, v, Budgets.Max());
 
-        var configs = (from b in Budgets from e in Efforts select (budget: b, effort: e)).ToList();
+        // liveOnly ("-- cevap canli"): sadece canlıdaki ayar (bütçe 4000, minimal); pipeline değişince hızlı kontrol.
+        var configs = liveOnly
+            ? [(budget: KnowledgeSearch.TokenBudget, effort: (string?)LegalAnswerService.AnswerReasoningEffort)]
+            : (from b in Budgets from e in Efforts select (budget: b, effort: e)).ToList();
+        // Dosya adında arama pipeline sürümü de var: pipeline değişince eski cevaplar "kaldığı yerden" diye kullanılmasın.
+        var tag = $"p{LegalAnswerService.PromptVersion}-s{KnowledgeSearch.PipelineVersion}";
         Directory.CreateDirectory(resultsDir);
-        var progressPath = Path.Combine(resultsDir, $"answers-p{LegalAnswerService.PromptVersion}.progress.jsonl");
+        var progressPath = Path.Combine(resultsDir, $"answers-{tag}.progress.jsonl");
         var byId = questions.ToDictionary(x => x.q.Id, x => x.q);
         var results = new ConcurrentBag<Result>(File.Exists(progressPath)
             ? File.ReadLines(progressPath).Select(l => JsonSerializer.Deserialize<SavedResult>(l, JsonOptions)!)
@@ -102,7 +107,7 @@ public static class AnswerEval
         PrintSummary(results.ToList(), configs);
         PrintTopSimilarity(questions, sources);
 
-        var outPath = Path.Combine(resultsDir, $"answers-p{LegalAnswerService.PromptVersion}-{DateTime.Now:yyyyMMdd-HHmmss}.json");
+        var outPath = Path.Combine(resultsDir, $"answers-{tag}-{DateTime.Now:yyyyMMdd-HHmmss}.json");
         File.WriteAllText(outPath, JsonSerializer.Serialize(
             results.OrderBy(r => r.Q.Id).ThenBy(r => r.Budget).ThenBy(r => r.Effort).Select(r => new
             {
@@ -121,7 +126,7 @@ public static class AnswerEval
 
     // SDK'nın kendi retry'ı birkaç saniye bekler; TPM kotası dolunca (429) ~1 dk beklemek gerekir.
     // SK, SDK hatasını HttpOperationException içine sarar.
-    private static async Task<T> WithRetryAsync<T>(Func<Task<T>> action, int maxAttempts = 8)
+    internal static async Task<T> WithRetryAsync<T>(Func<Task<T>> action, int maxAttempts = 8)
     {
         for (var attempt = 1; ; attempt++)
         {
@@ -176,7 +181,7 @@ public static class AnswerEval
 
     // Kapsam dışı tespiti için: Birlesik sorguyla en iyi kaynağın benzerliği soru türüne göre ayrışıyor mu?
     // Madde atfıyla doğrudan gelen kaynak benzerliği 1 olduğundan vektör sonucu kullanılır (Similarity < 1).
-    private static void PrintTopSimilarity(List<(EvalQuestion q, Vector combined)> questions, Dictionary<string, List<KnowledgeSource>> sources)
+    private static void PrintTopSimilarity(List<(EvalQuestion q, Vector vector)> questions, Dictionary<string, List<KnowledgeSource>> sources)
     {
         Console.WriteLine("\n== En iyi kaynağın benzerliği (Birlesik sorgu), türe göre min / ort / maks ==");
         foreach (var g in questions.GroupBy(x => x.q.Type))

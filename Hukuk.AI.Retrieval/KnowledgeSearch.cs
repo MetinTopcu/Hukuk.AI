@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using Hukuk.AI.Data.Entities;
-using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 using Pgvector;
 
@@ -9,31 +8,30 @@ namespace Hukuk.AI.Retrieval;
 // LLM'e bağlam olarak verilecek kaynak. Number cevaptaki atıf numarası ([1], [2] ...).
 public record KnowledgeSource(int Number, string Label, ArticleRef[] Articles, string LawName, string Heading, string Content, int TokenCount, double Similarity);
 
-// Eval'de kazanan yapı (2026-09-24): strateji D + Birlesik sorgu + madde atfında doğrudan getirme + exact vektör,
-// kanun filtresi yok, BM25 yok. Bütçe 4000 (D@4000 R 1.000 MRR .868; @2000 R .970); cevap eval'inde de 4000 hem
-// puanda hem atıfta 2000'den iyi, süre farkı yok (2026-09-27).
-public class KnowledgeSearch(Retriever retriever, QueryRewriter rewriter, IEmbeddingGenerator<string, Embedding<float>> generator, ILogger<KnowledgeSearch> logger)
+// Eval'de kazanan yapı (2026-09-24): strateji D + madde atfında doğrudan getirme + exact vektör,
+// kanun filtresi yok, BM25 yok. Bütçe 4000; cevap eval'inde de 4000 hem puanda hem atıfta 2000'den iyi (2026-09-27).
+// 2026-09-29: sorgu yeniden yazımı (~5 sn) çıkarıldı, sorgu = ham soru (D@4000 recall .993 MRR .825; yazımla 1.000 / .868).
+public class KnowledgeSearch(Retriever retriever, QueryEmbedder embedder, ILogger<KnowledgeSearch> logger)
 {
     public const ChunkStrategy Strategy = ChunkStrategy.D_Hibrit;
     public const int FetchCount = 50; // en büyük bütçeyi doldurmaya yetecek kadar aday chunk
     public const int TokenBudget = 4000;
+    // Arama akışı değişince artır (eval sonuç dosyaları buna bağlı). 1: yeniden yazımlı, 2: ham soru.
+    public const int PipelineVersion = 2;
 
     public async Task<List<KnowledgeSource>> SearchAsync(string question, CancellationToken cancellationToken = default)
     {
         var sw = Stopwatch.StartNew();
-        var rewrite = await rewriter.RewriteAsync(question, cancellationToken);
-        var rewriteMs = sw.ElapsedMilliseconds;
-
-        var embedding = await generator.GenerateVectorAsync(QueryRewriter.Combine(question, rewrite), cancellationToken: cancellationToken);
-        var embedMs = sw.ElapsedMilliseconds - rewriteMs;
+        var embedding = await embedder.EmbedAsync(question, cancellationToken);
+        var embedMs = sw.ElapsedMilliseconds;
 
         var sources = await SearchAsync(question, new Vector(embedding), TokenBudget);
-        logger.LogInformation("Arama: yeniden yazım {RewriteMs} ms, embedding {EmbedMs} ms, veritabanı {DbMs} ms, {Count} kaynak",
-            rewriteMs, embedMs, sw.ElapsedMilliseconds - rewriteMs - embedMs, sources.Count);
+        logger.LogInformation("Arama: embedding {EmbedMs} ms, veritabanı {DbMs} ms, {Count} kaynak",
+            embedMs, sw.ElapsedMilliseconds - embedMs, sources.Count);
         return sources;
     }
 
-    // Sorgu vektörü hazırsa (eval: yeniden yazımlar cache'ten, vektörler toplu embed edilir).
+    // Sorgu vektörü hazırsa (eval: vektörler toplu embed edilir).
     public async Task<List<KnowledgeSource>> SearchAsync(string question, Vector queryVector, int tokenBudget)
     {
         var vector = await retriever.SearchAsync(queryVector, Strategy, null, FetchCount);

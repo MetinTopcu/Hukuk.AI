@@ -46,7 +46,8 @@ public partial class LegalAnswerService
         _logger = logger;
     }
 
-    public async Task<LegalAnswer> AnswerAsync(string question, CancellationToken cancellationToken = default)
+    // onDelta verilirse cevap parça parça üretilir (streaming): ilk kelime ~1 sn'de kullanıcıya gider.
+    public async Task<LegalAnswer> AnswerAsync(string question, Func<string, Task>? onDelta = null, CancellationToken cancellationToken = default)
     {
         // Kernel üzerinden çağrı: SK filtreleri ve telemetri (ileride loglama, önbellek) bu çağrıyı da görür.
         var sources = await _kernel.InvokeAsync<List<KnowledgeSource>>(
@@ -54,7 +55,9 @@ public partial class LegalAnswerService
             new KernelArguments { ["question"] = question }, cancellationToken) ?? [];
 
         var sw = Stopwatch.StartNew();
-        var result = await GenerateAsync(question, sources, AnswerReasoningEffort, cancellationToken);
+        var result = onDelta is null
+            ? await GenerateAsync(question, sources, AnswerReasoningEffort, cancellationToken)
+            : await GenerateStreamingAsync(question, sources, onDelta, cancellationToken);
         _logger.LogInformation("Cevap üretimi {AnswerMs} ms", sw.ElapsedMilliseconds);
         return result;
     }
@@ -63,13 +66,39 @@ public partial class LegalAnswerService
     // reasoningEffort null: modelin varsayılanı (gpt-5-mini'de medium).
     public async Task<LegalAnswer> GenerateAsync(string question, List<KnowledgeSource> sources, string? reasoningEffort = null, CancellationToken cancellationToken = default)
     {
+        var settings = new OpenAIPromptExecutionSettings { ReasoningEffort = reasoningEffort };
+        var reply = await _chat.GetChatMessageContentAsync(BuildHistory(question, sources), settings, _kernel, cancellationToken);
+        return WithCitations(reply.Content, sources);
+    }
+
+    private async Task<LegalAnswer> GenerateStreamingAsync(string question, List<KnowledgeSource> sources, Func<string, Task> onDelta, CancellationToken cancellationToken)
+    {
+        var settings = new OpenAIPromptExecutionSettings { ReasoningEffort = AnswerReasoningEffort };
+        var sw = Stopwatch.StartNew();
+        var answer = new StringBuilder();
+        await foreach (var chunk in _chat.GetStreamingChatMessageContentsAsync(BuildHistory(question, sources), settings, _kernel, cancellationToken))
+        {
+            if (string.IsNullOrEmpty(chunk.Content))
+                continue;
+            if (answer.Length == 0)
+                _logger.LogInformation("İlk token {FirstTokenMs} ms", sw.ElapsedMilliseconds);
+            answer.Append(chunk.Content);
+            await onDelta(chunk.Content);
+        }
+        return WithCitations(answer.ToString(), sources);
+    }
+
+    private static ChatHistory BuildHistory(string question, List<KnowledgeSource> sources)
+    {
         var history = new ChatHistory(SystemPrompt);
         history.AddUserMessage(BuildUserMessage(question, sources));
-        var settings = new OpenAIPromptExecutionSettings { ReasoningEffort = reasoningEffort };
-        var reply = await _chat.GetChatMessageContentAsync(history, settings, _kernel, cancellationToken);
-        var answer = reply.Content?.Trim() ?? throw new InvalidOperationException("Boş yanıt.");
+        return history;
+    }
 
-        // Sadece cevapta gerçekten atıf yapılan kaynaklar döner; LLM'in uydurduğu numaralar ([9] gibi) elenir.
+    // Sadece cevapta gerçekten atıf yapılan kaynaklar döner; LLM'in uydurduğu numaralar ([9] gibi) elenir.
+    private static LegalAnswer WithCitations(string? content, List<KnowledgeSource> sources)
+    {
+        var answer = content?.Trim() is { Length: > 0 } text ? text : throw new InvalidOperationException("Boş yanıt.");
         var cited = CitationMarker().Matches(answer).Select(m => int.Parse(m.Groups[1].Value)).ToHashSet();
         return new LegalAnswer(answer, sources.Where(s => cited.Contains(s.Number)).ToList());
     }

@@ -2,10 +2,12 @@ using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 
-namespace Hukuk.AI.Retrieval;
+namespace Hukuk.AI.Evaluation;
 
 // Kullanıcı sorusunu kanun diline çevirir (query rewriting). Prompt değişirse PromptVersion artırılmalı;
 // eval'deki rewrite cache'i sürüme bağlı olduğu için eski sonuçlarla karışmaz.
+// 2026-09-29 canlı pipeline'dan çıkarıldı: ~5 sn ekliyordu, kazancı küçüktü (D@4000 recall 1.000 -> .993, MRR .868 -> .825).
+// Eski ölçümleri tekrarlayabilmek için sadece eval'de duruyor.
 public class QueryRewriter(IChatCompletionService chat)
 {
     public const int PromptVersion = 1;

@@ -7,11 +7,14 @@ using Hukuk.AI.Evaluation;
 using Hukuk.AI.Retrieval;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Pgvector;
+using StackExchange.Redis;
 
 // Adım 5: eval setindeki soruları her chunk stratejisinde (A/B/C/D) ve her sorgu yönteminde arar
 // (vektör; BM25 kelime araması; ikisinin ağırlıklı RRF ile hybrid'i; soruda madde atfı varsa hybrid'e yönlendirme).
@@ -44,6 +47,13 @@ var kernel = Kernel.CreateBuilder()
     .Build();
 #pragma warning restore SKEXP0010
 var generator = kernel.GetRequiredService<IEmbeddingGenerator<string, Embedding<float>>>();
+
+if (args.Contains("cache"))
+{
+    await using var redis = await ConnectionMultiplexer.ConnectAsync(Required("ConnectionStrings:Redis"));
+    await CacheEval.RunAsync(redis, generator, kernel.GetRequiredService<IChatCompletionService>(), evalSet.Questions, Path.Combine(dataDir, "eval", "cache-pairs-v1.json"), Path.Combine(dataDir, "eval", "results"));
+    return;
+}
 
 var rewriter = new RewriteCache(new QueryRewriter(kernel.GetRequiredService<IChatCompletionService>()),
     Path.Combine(dataDir, "eval", $"rewrites-v{QueryRewriter.PromptVersion}.json"));
@@ -101,11 +111,13 @@ if (args.Contains("sure"))
 
 if (args.Contains("cevap"))
 {
-    var coreRewriter = new QueryRewriter(kernel.GetRequiredService<IChatCompletionService>());
-    var search = new KnowledgeSearch(retriever, coreRewriter, generator, NullLogger<KnowledgeSearch>.Instance);
+    // Canlıdaki gibi yeniden yazımsız; vektörler toplu embed edildiği için embedding cache'i sadece bellekte (L1).
+    var hybridCache = new ServiceCollection().AddHybridCache().Services.BuildServiceProvider().GetRequiredService<HybridCache>();
+    var embedder = new QueryEmbedder(generator, hybridCache, NullLogger<QueryEmbedder>.Instance);
+    var search = new KnowledgeSearch(retriever, embedder, NullLogger<KnowledgeSearch>.Instance);
     var answers = new LegalAnswerService(kernel.Clone(), new KnowledgeBasePlugin(search), NullLogger<LegalAnswerService>.Instance);
     await AnswerEval.RunAsync(answers, search, kernel.GetRequiredService<IChatCompletionService>(),
-        vectors.Select(x => (x.q, x.combined)).ToList(), Path.Combine(dataDir, "eval", "results"));
+        vectors.Select(x => (x.q, x.original)).ToList(), Path.Combine(dataDir, "eval", "results"), liveOnly: args.Contains("canli"));
     return;
 }
 
@@ -133,6 +145,15 @@ var queryMethods = new (string Name, Func<(EvalQuestion q, Vector original, Vect
     ("DogrudanMadde", async (x, s, law) =>
     {
         var vector = await retriever.SearchAsync(x.combined, s, law, fetchCount);
+        var references = QueryRouter.Parse(x.q.Question);
+        if (references.Count == 0)
+            return vector;
+        return KnowledgeSearch.PrependDirect(await retriever.GetByArticlesAsync(references, s), vector);
+    }),
+    // Kazanan yapının yeniden yazımsız hali (2026-09-29): yeniden yazım ~5 sn, kaldırılırsa ne kaybedilir?
+    ("HamDogrudanMadde", async (x, s, law) =>
+    {
+        var vector = await retriever.SearchAsync(x.original, s, law, fetchCount);
         var references = QueryRouter.Parse(x.q.Question);
         if (references.Count == 0)
             return vector;
