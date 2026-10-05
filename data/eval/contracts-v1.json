@@ -1,0 +1,159 @@
+{
+  "version": 1,
+  "created": "2026-10-01",
+  "description": "Risk raporu ölçüm seti. 7 sentetik sözleşme (contracts-v1/*.md, Document Intelligence layout çıktısına benzer Markdown). risks: rapora girmesi beklenen maddeler (kaçırılırsa recall düşer). Listede olmayan maddeler temizdir; onlar için risk raporlanırsa yanlış alarm sayılır. invalid: emredici hükme aykırı (madde geçersiz). expected_articles: raporun atıf yapması beklenen bilgi tabanı maddeleri, data/parsed metninden doğrulandı. in_scope=false: bilgi tabanı (TBK kira, İş Kanunu) dışı; risk yazılabilir ama kanun atfı olmamalı ve rapor başında uyarı beklenir.",
+  "contracts": [
+    {
+      "id": "c1",
+      "file": "c1-kira-konut.md",
+      "type": "kira_konut",
+      "law": "6098",
+      "in_scope": true,
+      "parties": ["Ahmet Yılmaz (kiraya veren)", "Elif Demir (kiracı)"],
+      "clause_count": 11,
+      "risks": [
+        {
+          "clause": 5,
+          "severity": "yuksek",
+          "invalid": true,
+          "expected_articles": [342],
+          "risk": "Depozito altı aylık kira bedeli; güvence üç aylık kira bedelini aşamaz. Ayrıca para kiraya verene elden veriliyor; kiracı adına vadeli tasarruf hesabına yatırılmalıdır."
+        },
+        {
+          "clause": 6,
+          "severity": "yuksek",
+          "invalid": true,
+          "expected_articles": [344],
+          "risk": "Yenilenen dönemde sabit yüzde 80 artış; artış anlaşması bir önceki kira yılının TÜFE on iki aylık ortalama değişim oranını geçmediği ölçüde geçerlidir."
+        }
+      ]
+    },
+    {
+      "id": "c2",
+      "file": "c2-kira-konut.md",
+      "type": "kira_konut",
+      "law": "6098",
+      "in_scope": true,
+      "parties": ["Mehmet Kaya (kiraya veren)", "Zeynep Arslan (kiracı)"],
+      "clause_count": 11,
+      "risks": [
+        {
+          "clause": 5,
+          "severity": "yuksek",
+          "invalid": true,
+          "expected_articles": [346],
+          "risk": "Kira bedelinin geç ödenmesi hâlinde ceza koşulu öngörülmüş; kiracıya kira bedeli ve yan giderler dışında ödeme yükümlülüğü getirilemez, ceza koşulu anlaşması geçersizdir."
+        },
+        {
+          "clause": 6,
+          "severity": "yuksek",
+          "invalid": true,
+          "expected_articles": [346],
+          "risk": "Bir kira ödenmezse sonraki kira bedellerinin muaccel olacağı kararlaştırılmış; muacceliyet anlaşması geçersizdir."
+        },
+        {
+          "clause": 7,
+          "severity": "orta",
+          "invalid": true,
+          "expected_articles": [343],
+          "risk": "Kiraya verene sözleşme koşullarını tek taraflı değiştirme yetkisi verilmiş; kira bedelinin belirlenmesi dışında kiracı aleyhine değişiklik yapılamaz."
+        }
+      ]
+    },
+    {
+      "id": "c3",
+      "file": "c3-kira-isyeri.md",
+      "type": "kira_isyeri",
+      "law": "6098",
+      "in_scope": true,
+      "parties": ["Hasan Çelik (kiraya veren)", "Burak Şahin (kiracı)"],
+      "clause_count": 11,
+      "risks": [
+        {
+          "clause": 5,
+          "severity": "yuksek",
+          "invalid": true,
+          "expected_articles": [340],
+          "risk": "Kira sözleşmesinin kurulması, kiracının yararı olmayan ve kiralananın kullanımıyla ilgisi bulunmayan mobilya alımına bağlanmış; bağlantılı sözleşme geçersizdir."
+        }
+      ]
+    },
+    {
+      "id": "c4",
+      "file": "c4-is.md",
+      "type": "is",
+      "law": "4857",
+      "in_scope": true,
+      "parties": ["Delta Yazılım A.Ş. (işveren)", "Can Öztürk (işçi)"],
+      "clause_count": 11,
+      "risks": [
+        {
+          "clause": 4,
+          "severity": "orta",
+          "invalid": true,
+          "expected_articles": [15],
+          "risk": "Deneme süresi altı ay; deneme süresi en çok iki ay olabilir (toplu iş sözleşmesiyle dört aya kadar uzatılabilir)."
+        },
+        {
+          "clause": 8,
+          "severity": "yuksek",
+          "invalid": true,
+          "expected_articles": [53],
+          "risk": "Yıllık ücretli izin on gün ile sınırlanmış; izin süresi hizmet süresine göre on dört, yirmi ve yirmi altı günden az olamaz, izin hakkından vazgeçilemez."
+        }
+      ]
+    },
+    {
+      "id": "c5",
+      "file": "c5-is.md",
+      "type": "is",
+      "law": "4857",
+      "in_scope": true,
+      "parties": ["Ege Lojistik Ltd. Şti. (işveren)", "Fatma Aydın (işçi)"],
+      "clause_count": 10,
+      "risks": [
+        {
+          "clause": 4,
+          "severity": "yuksek",
+          "invalid": true,
+          "expected_articles": [63],
+          "risk": "Haftalık normal çalışma süresi elli beş saat; çalışma süresi haftada en çok kırk beş saattir."
+        },
+        {
+          "clause": 6,
+          "severity": "yuksek",
+          "invalid": true,
+          "expected_articles": [41],
+          "risk": "Fazla çalışma karşılığı süre sınırı olmaksızın ücrete dâhil sayılmış; her saat fazla çalışma yüzde elli zamlı ödenir veya serbest zaman verilir, fazla çalışma yılda iki yüz yetmiş saati aşamaz."
+        },
+        {
+          "clause": 7,
+          "severity": "yuksek",
+          "invalid": true,
+          "expected_articles": [17],
+          "risk": "İşverenin bildirim süresi kıdeme bakılmaksızın bir hafta ve tazminat talebi engellenmiş; bildirim süreleri kıdeme göre iki ile sekiz hafta arasında asgari sürelerdir, uymayan taraf bildirim süresi ücreti tutarında tazminat öder."
+        }
+      ]
+    },
+    {
+      "id": "c6",
+      "file": "c6-is-temiz.md",
+      "type": "is",
+      "law": "4857",
+      "in_scope": true,
+      "parties": ["Anadolu Gıda San. ve Tic. A.Ş. (işveren)", "Ayşe Koç (işçi)"],
+      "clause_count": 11,
+      "risks": []
+    },
+    {
+      "id": "c7",
+      "file": "c7-satis-kapsam-disi.md",
+      "type": "satis",
+      "law": null,
+      "in_scope": false,
+      "parties": ["Murat Güneş (satıcı)", "Deniz Polat (alıcı)"],
+      "clause_count": 8,
+      "risks": []
+    }
+  ]
+}

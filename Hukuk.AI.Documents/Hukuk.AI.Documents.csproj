@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Kullanıcının yüklediği belgeler: oturumluk saklama (Redis, TTL), işleme kuyruğu (Redis Streams), durum yayını (Pub/Sub),
+       OCR (Document Intelligence), parçalama ve embedding -->
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Embedding (FLOAT16 dönüşümü, ortak model sürümü) ve ileride risk raporu için bilgi tabanı araması -->
+    <ProjectReference Include="..\Hukuk.AI.Retrieval\Hukuk.AI.Retrieval.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Azure.AI.DocumentIntelligence" Version="1.0.0" />
+    <PackageReference Include="Microsoft.ML.Tokenizers" Version="2.0.0" />
+    <PackageReference Include="Microsoft.ML.Tokenizers.Data.Cl100kBase" Version="2.0.0" />
+  </ItemGroup>
+
+</Project>

@@ -55,6 +55,34 @@ if (args.Contains("cache"))
     return;
 }
 
+// "dotnet run -- rapor": sentetik sözleşmelerde risk raporu kalitesi (soru eval setine ihtiyaç duymaz).
+if (args.Contains("rapor"))
+{
+    await using var reportDb = new AppDbContext(new DbContextOptionsBuilder<AppDbContext>().UseHukukAiPostgres(Required("ConnectionStrings:DefaultConnection")).Options);
+    var hybridCache = new ServiceCollection().AddHybridCache().Services.BuildServiceProvider().GetRequiredService<HybridCache>();
+    var search = new KnowledgeSearch(new Retriever(reportDb), new QueryEmbedder(generator, hybridCache, NullLogger<QueryEmbedder>.Instance), NullLogger<KnowledgeSearch>.Instance);
+    var reports = new Hukuk.AI.Documents.RiskReportService(search, kernel.GetRequiredService<IChatCompletionService>(), NullLogger<Hukuk.AI.Documents.RiskReportService>.Instance);
+    await ReportEval.RunAsync(reports, Path.Combine(dataDir, "eval", "contracts-v1.json"), Path.Combine(dataDir, "eval", "results"), matrix: args.Contains("matris"));
+    return;
+}
+
+// "dotnet run -- belgesoru": sentetik sözleşmeler üzerinde soru-cevap kalitesi (parçalar gerçek Redis'e yazılır).
+if (args.Contains("belgesoru"))
+{
+    await using var redis = await ConnectionMultiplexer.ConnectAsync(Required("ConnectionStrings:Redis"));
+    await using var docDb = new AppDbContext(new DbContextOptionsBuilder<AppDbContext>().UseHukukAiPostgres(Required("ConnectionStrings:DefaultConnection")).Options);
+    var hybridCache = new ServiceCollection().AddHybridCache().Services.BuildServiceProvider().GetRequiredService<HybridCache>();
+    var embedder = new QueryEmbedder(generator, hybridCache, NullLogger<QueryEmbedder>.Instance);
+    var search = new KnowledgeSearch(new Retriever(docDb), embedder, NullLogger<KnowledgeSearch>.Instance);
+    var chat = kernel.GetRequiredService<IChatCompletionService>();
+    var store = new Hukuk.AI.Documents.DocumentStore(redis, NullLogger<Hukuk.AI.Documents.DocumentStore>.Instance);
+    var docAnswers = new Hukuk.AI.Documents.DocumentAnswerService(store, embedder, generator, search, chat, NullLogger<Hukuk.AI.Documents.DocumentAnswerService>.Instance);
+    var chunker = new Hukuk.AI.Documents.DocumentChunker(Microsoft.ML.Tokenizers.TiktokenTokenizer.CreateForModel("text-embedding-3-large"));
+    await DocAnswerEval.RunAsync(docAnswers, store, chunker, generator, chat, Path.Combine(dataDir, "eval", "doc-questions-v1.json"),
+        Path.Combine(dataDir, "eval", "contracts-v1"), Path.Combine(dataDir, "eval", "results"), matrix: args.Contains("matris"));
+    return;
+}
+
 var rewriter = new RewriteCache(new QueryRewriter(kernel.GetRequiredService<IChatCompletionService>()),
     Path.Combine(dataDir, "eval", $"rewrites-v{QueryRewriter.PromptVersion}.json"));
 Console.WriteLine("Sorular kanun diline yeniden yazılıyor (cache'te olmayanlar)...");

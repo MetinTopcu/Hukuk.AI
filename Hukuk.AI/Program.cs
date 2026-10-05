@@ -1,4 +1,9 @@
 using Hukuk.AI.Data;
+using Azure;
+using Azure.AI.DocumentIntelligence;
+using Hukuk.AI.Documents;
+using Hukuk.AI.Workers;
+using Microsoft.ML.Tokenizers;
 using Hukuk.AI.Retrieval;
 using Microsoft.SemanticKernel;
 using StackExchange.Redis;
@@ -39,6 +44,20 @@ builder.Services.AddSingleton<SemanticAnswerCache>();
 builder.Services.AddSingleton<QueryEmbedder>();
 builder.Services.AddSingleton<InflightAnswers>(); // süreç genelinde tek: aynı anda gelen aynı soruları birleştirir
 
+// Yüklenen belgeler: Redis'te oturumluk saklama + kuyruk, arka planda OCR → parçalama → embedding.
+builder.Services.AddSingleton<DocumentStore>();
+builder.Services.AddSingleton<DocumentQueue>();
+builder.Services.AddSingleton(new DocumentChunker(TiktokenTokenizer.CreateForModel("text-embedding-3-large"))); // embedding modelinin tokenizer'ı
+if (configuration["AI:DocIntelEndpoint"] is { Length: > 0 } docIntelEndpoint)
+    builder.Services.AddSingleton<IDocumentReader>(new AzureDocumentReader(
+        new DocumentIntelligenceClient(new Uri(docIntelEndpoint), new AzureKeyCredential(Required("AI:DocIntelKey")))));
+else
+    builder.Services.AddSingleton<IDocumentReader, NotConfiguredDocumentReader>(); // API yine açılır, belge işleme hata verir
+builder.Services.AddScoped<RiskReportService>(); // bilgi tabanı aramasına (DbContext) bağlı
+builder.Services.AddScoped<DocumentProcessor>();
+builder.Services.AddScoped<DocumentAnswerService>();
+builder.Services.AddHostedService<DocumentWorker>();
+
 // DbContext scoped olduğu için ona bağlı her şey de scoped.
 builder.Services.AddScoped<Retriever>();
 builder.Services.AddScoped<KnowledgeSearch>();
@@ -52,6 +71,7 @@ builder.Services.AddOpenApi();
 var app = builder.Build();
 
 await app.Services.GetRequiredService<SemanticAnswerCache>().EnsureIndexAsync();
+await app.Services.GetRequiredService<DocumentStore>().EnsureIndexAsync();
 await WarmUpAsync(app.Services);
 
 if (app.Environment.IsDevelopment())
