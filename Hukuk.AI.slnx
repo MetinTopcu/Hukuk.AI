@@ -1,6 +1,7 @@
 <Solution>
   <Project Path="Hukuk.AI.Data/Hukuk.AI.Data.csproj" />
   <Project Path="Hukuk.AI.Documents/Hukuk.AI.Documents.csproj" />
+  <Project Path="Hukuk.AI.Drafting/Hukuk.AI.Drafting.csproj" />
   <Project Path="Hukuk.AI.Evaluation/Hukuk.AI.Evaluation.csproj" />
   <Project Path="Hukuk.AI.Ingestion/Hukuk.AI.Ingestion.csproj" />
   <Project Path="Hukuk.AI.Retrieval/Hukuk.AI.Retrieval.csproj" />

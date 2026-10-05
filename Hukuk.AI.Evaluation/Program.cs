@@ -66,6 +66,24 @@ if (args.Contains("rapor"))
     return;
 }
 
+// "dotnet run -- taslak": sözleşme taslağı kalitesi (oturum/Redis yok: çıkarım ve yazım doğrudan çağrılır).
+if (args.Contains("taslak"))
+{
+    await using var draftDb = new AppDbContext(new DbContextOptionsBuilder<AppDbContext>().UseHukukAiPostgres(Required("ConnectionStrings:DefaultConnection")).Options);
+    var hybridCache = new ServiceCollection().AddHybridCache().Services.BuildServiceProvider().GetRequiredService<HybridCache>();
+    var search = new KnowledgeSearch(new Retriever(draftDb), new QueryEmbedder(generator, hybridCache, NullLogger<QueryEmbedder>.Instance), NullLogger<KnowledgeSearch>.Instance);
+    var chat = kernel.GetRequiredService<IChatCompletionService>();
+    var reports = new Hukuk.AI.Documents.RiskReportService(search, chat, NullLogger<Hukuk.AI.Documents.RiskReportService>.Instance);
+    var writer = new Hukuk.AI.Drafting.DraftWriter(search, reports, chat, NullLogger<Hukuk.AI.Drafting.DraftWriter>.Instance);
+    if (args.Contains("cikarim"))
+    {
+        await DraftEval.RunIntakeAsync(new Hukuk.AI.Drafting.DraftIntake(chat), Path.Combine(dataDir, "eval", "draft-requests-v1.json"), Path.Combine(dataDir, "eval", "results"));
+        return;
+    }
+    await DraftEval.RunAsync(new Hukuk.AI.Drafting.DraftIntake(chat), writer, chat, Path.Combine(dataDir, "eval", "draft-requests-v1.json"), Path.Combine(dataDir, "eval", "results"));
+    return;
+}
+
 // "dotnet run -- belgesoru": sentetik sözleşmeler üzerinde soru-cevap kalitesi (parçalar gerçek Redis'e yazılır).
 if (args.Contains("belgesoru"))
 {

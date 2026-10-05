@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Sözleşme taslağı üretimi: serbest metinden bilgi çıkarma + eksik soruları, sabit iskelet + kanun maddeleriyle yazım,
+       risk raporuyla kendi kendini denetleme ve düzeltme. Oturum Redis'te (TTL) -->
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Denetim için RiskReportService; bilgi tabanı (Retrieval) bunun üzerinden gelir -->
+    <ProjectReference Include="..\Hukuk.AI.Documents\Hukuk.AI.Documents.csproj" />
+  </ItemGroup>
+
+</Project>

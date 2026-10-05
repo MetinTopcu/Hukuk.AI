@@ -2,6 +2,7 @@ using Hukuk.AI.Data;
 using Azure;
 using Azure.AI.DocumentIntelligence;
 using Hukuk.AI.Documents;
+using Hukuk.AI.Drafting;
 using Hukuk.AI.Workers;
 using Microsoft.ML.Tokenizers;
 using Hukuk.AI.Retrieval;
@@ -57,6 +58,11 @@ builder.Services.AddScoped<RiskReportService>(); // bilgi tabanı aramasına (Db
 builder.Services.AddScoped<DocumentProcessor>();
 builder.Services.AddScoped<DocumentAnswerService>();
 builder.Services.AddHostedService<DocumentWorker>();
+
+// Sözleşme taslağı: oturum Redis'te, yazım + risk raporuyla denetim.
+builder.Services.AddSingleton<DraftStore>();
+builder.Services.AddSingleton<DraftIntake>();
+builder.Services.AddScoped<DraftWriter>(); // bilgi tabanına (DbContext) ve RiskReportService'e bağlı
 
 // DbContext scoped olduğu için ona bağlı her şey de scoped.
 builder.Services.AddScoped<Retriever>();

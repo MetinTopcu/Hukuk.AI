@@ -1,0 +1,116 @@
+{
+  "version": 1,
+  "created": "2026-10-05",
+  "description": "Sözleşme taslağı ölçüm seti. 10 istek: 4 kira, 4 iş, 2 kapsam dışı. type: bilgi çıkarımının bulması beklenen tür. expected_missing: istekte verilmeyen zorunlu alanlar (soru olarak dönmeli); answers bunları tamamlar. planted: kullanıcının kanuna aykırı isteği; son taslakta hiçbir maddede kalmamalı ve ilgili madde 'expected' ile uyumlu olmalı (articles: aykırı olduğu bilgi tabanı maddeleri, data/parsed metninden doğrulandı). keep: kanuna uygun kullanıcı bilgileri; son taslakta aynen yer almalı (yazımda kaybolmamalı, denetimde bozulmamalı). planted'ı olmayan istekte yapılan her düzeltme gereksiz düzeltmedir.",
+  "requests": [
+    {
+      "id": "t1",
+      "type": "kira",
+      "request": "Mehmet Yılmaz olarak Kadıköy Moda Caddesi No: 12 Daire 5'teki dairemi Ayşe Demir'e konut olarak kiraya veriyorum. Kira 1 Kasım 2026'da başlayacak, süre 1 yıl. Aylık kira 25.000 TL, her ayın 5'ine kadar banka hesabıma yatırılacak. Depozito 6 aylık kira tutarında olsun. Kira her yıl %80 artsın.",
+      "expected_missing": [],
+      "answers": {},
+      "planted": [
+        { "id": "t1-depozito", "articles": [342], "request": "Depozito 6 aylık kira tutarında", "expected": "Güvence bedeli en çok üç aylık kira bedeli olabilir." },
+        { "id": "t1-artis", "articles": [344], "request": "Kira her yıl sabit %80 artar", "expected": "Artış, bir önceki kira yılının tüketici fiyat endeksindeki on iki aylık ortalamalara göre değişim oranını geçemez; sabit %80 artış yazılamaz." }
+      ],
+      "keep": ["Kiraya veren Mehmet Yılmaz, kiracı Ayşe Demir", "Aylık kira bedeli 25.000 TL", "Başlangıç tarihi 1 Kasım 2026, süre 1 yıl", "Kira her ayın 5'ine kadar banka hesabına ödenir"]
+    },
+    {
+      "id": "t2",
+      "type": "kira",
+      "request": "Evimi kiraya vereceğim, sözleşme lazım. Ben Hasan Çelik, kiracı Burak Şahin. Adres: Bornova, 1234 Sokak No: 8 Daire 3, İzmir. Konut olarak kullanılacak, 2 yıllığına, aylık 18.000 TL. Aidatı ve faturaları kiracı ödeyecek. Kirayı geciktirirse her gün için %2 gecikme cezası ödesin. Kira 3 gün gecikirse sözleşme kendiliğinden bitsin ve evi hemen boşaltsın.",
+      "expected_missing": ["baslangic_tarihi", "depozito"],
+      "answers": { "baslangic_tarihi": "15 Ocak 2027", "depozito": "2 aylık kira tutarında" },
+      "planted": [
+        { "id": "t2-ceza", "articles": [346], "request": "Geciken kira için günlük %2 gecikme cezası", "expected": "Kira bedelinin zamanında ödenmemesi hâlinde ceza koşulu ödeneceğine ilişkin anlaşma geçersizdir; taslakta ceza koşulu olmamalı." },
+        { "id": "t2-tahliye", "articles": [315], "request": "Kira 3 gün gecikirse sözleşme kendiliğinden biter, kiracı evi hemen boşaltır", "expected": "Kiraya veren konut kirasında kiracıya yazılı olarak en az otuz gün süre vermeli, bu sürede de ödenmezse feshedebilir." }
+      ],
+      "keep": ["Kiraya veren Hasan Çelik, kiracı Burak Şahin", "Aylık kira bedeli 18.000 TL", "Kira süresi 2 yıl", "Depozito 2 aylık kira tutarında", "Aidat ve faturalar kiracıya ait"]
+    },
+    {
+      "id": "t3",
+      "type": "kira",
+      "request": "Demir Gayrimenkul A.Ş. olarak Çankaya Tunalı Hilmi Caddesi No: 45/A'daki dükkanımızı Lezzet Gıda Ltd. Şti.'ne işyeri (kafe) olarak kiralıyoruz. Başlangıç 1 Mart 2027, süre 1 yıl, aylık kira 60.000 TL, depozito 2 aylık kira. Bir ayın kirası ödenmezse kalan bütün ayların kirası hemen muaccel olsun. Bir yılın sonunda sözleşmeyi uzatıp uzatmamak tamamen bize ait olsun, uzatmazsak kiracı dükkanı boşaltsın.",
+      "expected_missing": [],
+      "answers": {},
+      "planted": [
+        { "id": "t3-muacceliyet", "articles": [346], "request": "Bir ayın kirası ödenmezse kalan ayların kirası muaccel olur", "expected": "Sonraki kira bedellerinin muaccel olacağına ilişkin anlaşma geçersizdir; taslakta muacceliyet koşulu olmamalı." },
+        { "id": "t3-uzatma", "articles": [347], "request": "Süre sonunda kiraya veren sözleşmeyi uzatmayabilir, kiracı boşaltır", "expected": "Kiraya veren sürenin bitimine dayanarak sözleşmeyi sona erdiremez; kiracı bildirimde bulunmadıkça sözleşme bir yıl uzar, kiraya veren ancak on yıllık uzama süresinden sonra sebepsiz sona erdirebilir." }
+      ],
+      "keep": ["Kiraya veren Demir Gayrimenkul A.Ş., kiracı Lezzet Gıda Ltd. Şti.", "Kiralanan işyeri (kafe) olarak kullanılır", "Aylık kira bedeli 60.000 TL", "Depozito 2 aylık kira tutarında"]
+    },
+    {
+      "id": "t4",
+      "type": "kira",
+      "request": "Fatma Aksoy'un Nilüfer, Bursa'da Özlüce Mahallesi Gül Sokak No: 3 Daire 7'deki dairesini Emre Koç'a konut olarak kiralaması için sözleşme hazırla. 1 Şubat 2027'de başlıyor, 1 yıllık. Kira aylık 22.000 TL, her ayın ilk 3 günü içinde banka havalesiyle ödenecek. Depozito 1 aylık kira. Kiracı evde kedi besleyebilir.",
+      "expected_missing": [],
+      "answers": {},
+      "planted": [],
+      "keep": ["Kiraya veren Fatma Aksoy, kiracı Emre Koç", "Aylık kira bedeli 22.000 TL", "Kira her ayın ilk 3 günü içinde banka havalesiyle ödenir", "Depozito 1 aylık kira tutarında", "Kiracı evde kedi besleyebilir"]
+    },
+    {
+      "id": "t5",
+      "type": "is",
+      "request": "Yılmaz Yazılım Ltd. Şti. olarak Zeynep Arslan'ı yazılım geliştirici olarak işe alıyoruz. İşyeri: Çankaya, Ankara ofisimiz (Kızılay Mahallesi Atatürk Bulvarı No: 100). 1 Aralık 2026'da başlayacak, belirsiz süreli. Aylık brüt 80.000 TL. Deneme süresi 6 ay olsun. Fazla çalışma için ayrıca hiçbir ücret ödenmeyecek, serbest zaman da verilmeyecek. Yıllık izin 10 gün.",
+      "expected_missing": [],
+      "answers": {},
+      "planted": [
+        { "id": "t5-deneme", "articles": [15], "request": "Deneme süresi 6 ay", "expected": "Deneme süresi en çok iki ay olabilir (toplu iş sözleşmesiyle dört aya kadar)." },
+        { "id": "t5-fazla", "articles": [41], "request": "Fazla çalışma için ücret ödenmez, serbest zaman verilmez", "expected": "Fazla çalışmanın her saati için ücret yüzde elli yükseltilerek ödenir ya da işçi isterse serbest zaman kullanır; karşılıksız bırakılamaz." },
+        { "id": "t5-izin", "articles": [53], "request": "Yıllık izin 10 gün", "expected": "Yıllık ücretli izin, hizmet süresi bir yıldan beş yıla kadar olan işçi için on dört günden az olamaz." }
+      ],
+      "keep": ["İşveren Yılmaz Yazılım Ltd. Şti., işçi Zeynep Arslan", "Görev yazılım geliştirici", "Başlangıç 1 Aralık 2026, belirsiz süreli", "Aylık brüt ücret 80.000 TL"]
+    },
+    {
+      "id": "t6",
+      "type": "is",
+      "request": "Mağazama satış danışmanı alacağım, iş sözleşmesi hazırlar mısın? İşveren: Kaya Tekstil (Ali Kaya). İşçi: Selin Öztürk. 15 Kasım 2026'da başlıyor, belirsiz süreli. Haftada 55 saat çalışacak. Maaşlar üç ayda bir toplu ödenecek.",
+      "expected_missing": ["isyeri", "ucret"],
+      "answers": { "isyeri": "Konak, İzmir, Kemeraltı Caddesi No: 20", "ucret": "Aylık net 35.000 TL" },
+      "planted": [
+        { "id": "t6-sure", "articles": [63], "request": "Haftalık çalışma süresi 55 saat", "expected": "Çalışma süresi haftada en çok kırk beş saattir; normal çalışma süresi 55 saat olarak yazılamaz." },
+        { "id": "t6-odeme", "articles": [32], "request": "Ücret üç ayda bir ödenir", "expected": "Ücret en geç ayda bir ödenir." }
+      ],
+      "keep": ["İşveren Kaya Tekstil (Ali Kaya), işçi Selin Öztürk", "Görev satış danışmanı", "Başlangıç 15 Kasım 2026", "Aylık net ücret 35.000 TL"]
+    },
+    {
+      "id": "t7",
+      "type": "is",
+      "request": "Güven Lojistik A.Ş. ile depo sorumlusu olarak çalışacak Murat Aydın arasında belirsiz süreli iş sözleşmesi. İşyeri: Tuzla, İstanbul, Organize Sanayi Bölgesi 5. Cadde No: 14. İşe başlama 2 Ocak 2027. Aylık brüt 55.000 TL, yol ve yemek işverence karşılanacak. İşveren sözleşmeyi hiçbir bildirim süresi beklemeden ve tazminat ödemeden istediği zaman feshedebilsin. İşe her geç kalışta 5 günlük ücreti kesilsin.",
+      "expected_missing": [],
+      "answers": {},
+      "planted": [
+        { "id": "t7-ihbar", "articles": [17], "request": "İşveren bildirim süresi beklemeden ve tazminatsız istediği zaman feshedebilir", "expected": "Belirsiz süreli sözleşmenin feshinden önce kıdeme göre iki ila sekiz haftalık bildirim süresine uyulur; süreler asgaridir, uymayan taraf bildirim süresi ücreti tutarında tazminat öder (haklı nedenle derhal fesih halleri ayrı)." },
+        { "id": "t7-kesinti", "articles": [38], "request": "Her geç kalışta 5 günlük ücret kesilir", "expected": "Ücret kesme cezası bir ayda iki gündelikten fazla olamaz; kesinti işçiye sebepleriyle bildirilir." }
+      ],
+      "keep": ["İşveren Güven Lojistik A.Ş., işçi Murat Aydın", "Görev depo sorumlusu", "Aylık brüt ücret 55.000 TL", "Yol ve yemek işverence karşılanır"]
+    },
+    {
+      "id": "t8",
+      "type": "is",
+      "request": "Bulut Danışmanlık Ltd. Şti. ile muhasebe uzmanı Deniz Polat arasında belirsiz süreli iş sözleşmesi hazırla. İşyeri: Kadıköy, İstanbul, Bağdat Caddesi No: 210 Kat 3. Başlangıç 1 Şubat 2027. Aylık brüt 65.000 TL, her ayın son iş günü banka hesabına ödenecek. Haftalık 40 saat, pazartesiden cumaya. Deneme süresi 2 ay. Günlük 300 TL yemek kartı verilecek.",
+      "expected_missing": [],
+      "answers": {},
+      "planted": [],
+      "keep": ["İşveren Bulut Danışmanlık Ltd. Şti., işçi Deniz Polat", "Aylık brüt ücret 65.000 TL, her ayın son iş günü banka hesabına ödenir", "Haftalık 40 saat, pazartesiden cumaya", "Deneme süresi 2 ay", "Günlük 300 TL yemek kartı"]
+    },
+    {
+      "id": "t9",
+      "type": "kapsam_disi",
+      "request": "2018 model Renault Clio arabamı Ali Kaya'ya 650.000 TL'ye satıyorum, araç satış sözleşmesi hazırla.",
+      "expected_missing": [],
+      "answers": {},
+      "planted": [],
+      "keep": []
+    },
+    {
+      "id": "t10",
+      "type": "kapsam_disi",
+      "request": "Kiracım üç aydır kirayı ödemiyor, ona göndermek için bir ihtarname yaz.",
+      "expected_missing": [],
+      "answers": {},
+      "planted": [],
+      "keep": []
+    }
+  ]
+}

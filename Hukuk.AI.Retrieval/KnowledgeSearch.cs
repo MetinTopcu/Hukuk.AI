@@ -43,6 +43,15 @@ public class KnowledgeSearch(Retriever retriever, QueryEmbedder embedder, ILogge
             .ToList();
     }
 
+    // Arama yok: verilen maddeler doğrudan getirilir, bütçe uygulanmaz (taslak iskeleti: bölümün dayanağı sabit madde listesi).
+    public async Task<List<KnowledgeSource>> GetArticlesAsync(IEnumerable<QueryRouter.LegalReference> references)
+    {
+        var chunks = await retriever.GetByArticlesAsync(references, Strategy);
+        var texts = await retriever.GetTextsAsync(chunks.Select(c => c.Id).ToList());
+        return texts.Select((t, i) => new KnowledgeSource(i + 1, Label(t.Law, t.Articles), t.Articles, t.LawName, t.Heading, t.Content, chunks[i].TokenCount, chunks[i].Similarity))
+            .ToList();
+    }
+
     // Soruda madde atfı varsa o madde doğrudan getirilip başa konur, kalan bağlam vektör aramasıyla dolar.
     public static List<RetrievedChunk> PrependDirect(List<RetrievedChunk> direct, List<RetrievedChunk> vector) =>
         [.. direct, .. vector.Where(v => direct.All(d => d.Id != v.Id))];
