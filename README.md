@@ -7,7 +7,7 @@
 
 **Turkish legal question answering with article citations, built on RAG and measured at every step.**
 
-Hukuk.AI answers questions about the Turkish Labour Law (4857) and the Turkish Code of Obligations (6098), and cites the articles each answer rests on. It also reads an uploaded contract, reports its risky clauses with the law article behind each one, and answers questions about the document. It drafts rental and employment contracts from a free-text request and checks its own draft against the law.
+Hukuk.AI answers questions about the Turkish Labour Law (4857) and the Turkish Code of Obligations (6098), and cites the articles each answer rests on. It also reads an uploaded contract, reports its risky clauses with the law article behind each one, and answers questions about the document. It drafts rental and employment contracts from a free-text request and checks its own draft against the law. An agent endpoint lets the model choose between the law knowledge base and a web search for current figures.
 
 > A portfolio project. Its answers are not legal advice.
 
@@ -19,6 +19,7 @@ Hukuk.AI answers questions about the Turkish Labour Law (4857) and the Turkish C
 - **Direct article lookup.** References such as "TBK 344" or "İş K. m. 17" are parsed and fetched by metadata first; vector search fills the rest.
 - **Contract analysis.** Uploads (PDF, DOCX, image) are queued on a Redis Stream, read with Azure Document Intelligence, and kept in Redis for two hours only. A risk is reported only when it has a valid article citation.
 - **Drafts that check themselves.** A contract draft is written from a fixed clause skeleton, each section grounded in a fixed list of law articles. The draft streams to the user, then runs through the same risk report as uploaded contracts; clauses that contradict the law are rewritten and reported.
+- **An agent that picks its own tools.** On a separate endpoint the model decides, through Semantic Kernel function calling, whether to search the law knowledge base, the web (Tavily), both, or neither. Web sources are cited in their own list (`[W1]`) and flagged as unverified; the fixed pipeline and its cache stay untouched.
 - **Declines out-of-scope questions** instead of summarising unrelated articles.
 
 ## Results
@@ -37,6 +38,7 @@ Single runs on the project's own evaluation sets.
 | Contract drafting, illegal user demands removed from the final draft | 13 of 13 and 9 of 13 (two runs) |
 | Contract drafting, time to first token / full draft with self-check | about 1.7 s / about 60 s |
 | Draft intake, required facts extracted exactly | 24 of 24 and 23 of 24, nothing invented |
+| Agent tool choice, reasoning effort low / minimal | 12 of 12 in 7.0 s / 10 of 12 in 4.1 s |
 
 Hybrid search (vector + BM25) never beat plain vector search on this data, so the live pipeline uses vector search with direct article lookup.
 
@@ -46,6 +48,7 @@ Hybrid search (vector + BM25) never beat plain vector search on this data, so th
 - **The self-check is slow.** It takes 35–50 s of the roughly 60 s total, and it sometimes applies articles on agricultural leases to a residential lease.
 - **Two retrieval misses are not fixable by prompt.** TBK 310 and TBK 340 stay outside the 4000-token context for two document questions; a reranker is the planned fix.
 - **Uploads longer than two pages are untested** (free OCR tier).
+- **The agent is measured on tool choice only.** Its set has 12 questions and web results change from day to day, so answer quality is not scored. It is slower than the fixed pipeline (about 7 s) and is not cached.
 
 ## Architecture
 
@@ -56,6 +59,9 @@ flowchart LR
     API --> Retrieval["Retrieval<br/>article lookup + vector search"]
     Retrieval --> PG[("PostgreSQL + pgvector<br/>HNSW")]
     API --> LLM["Azure OpenAI<br/>via Semantic Kernel"]
+    API --> Agent["Agent<br/>function calling"]
+    Agent --> Retrieval
+    Agent --> Web["Tavily web search"]
     Upload["Contract upload"] --> Stream[("Redis Stream")]
     Stream --> Worker["Background worker<br/>OCR · chunk · embed · risk report"]
     Worker --> Cache
@@ -64,12 +70,12 @@ flowchart LR
 | Project | Role |
 |---|---|
 | `Hukuk.AI` | Web API: questions, document upload, drafting, SSE streaming, background worker |
-| `Hukuk.AI.Retrieval` | Query routing, vector search, answer generation, semantic cache |
+| `Hukuk.AI.Retrieval` | Query routing, vector search, answer generation, semantic cache, agent tools and web search |
 | `Hukuk.AI.Documents` | Contract reading, chunking, risk report, document Q&A |
 | `Hukuk.AI.Drafting` | Draft intake, clause skeletons, draft writing, self-check and fix |
 | `Hukuk.AI.Ingestion` | Law text parser, four chunking strategies, embedding |
 | `Hukuk.AI.Data` | EF Core model and migrations for pgvector |
-| `Hukuk.AI.Evaluation` | Retrieval, answer, cache, scale, contract and drafting evaluations |
+| `Hukuk.AI.Evaluation` | Retrieval, answer, cache, scale, contract, drafting and agent evaluations |
 
 ## API
 
@@ -77,6 +83,7 @@ flowchart LR
 |---|---|---|
 | `POST` | `/api/questions` | Answer a legal question with article citations |
 | `POST` | `/api/questions/stream` | The same answer streamed over SSE |
+| `POST` | `/api/questions/agent` | Agent mode: the model chooses knowledge base and/or web search (also `/stream`) |
 | `POST` | `/api/documents` | Upload a contract for analysis |
 | `GET` | `/api/documents/{id}/report` | Risk report with cited articles |
 | `POST` | `/api/documents/{id}/questions` | Ask about the uploaded document (also `/stream`) |
@@ -95,7 +102,7 @@ cp .env.example .env            # set POSTGRES_PASSWORD and REDIS_PASSWORD
 docker compose up -d            # PostgreSQL + pgvector on 5433, Redis on 6380
 ```
 
-Keys and connection strings live in .NET user secrets, never in the repository. Set `ConnectionStrings:DefaultConnection`, `ConnectionStrings:Redis`, `AI:AzureOpenAIEndpoint`, `AI:AzureOpenAIKey`, `AI:ChatDeploymentName` and `AI:EmbeddingDeploymentName`.
+Keys and connection strings live in .NET user secrets, never in the repository. Set `ConnectionStrings:DefaultConnection`, `ConnectionStrings:Redis`, `AI:AzureOpenAIEndpoint`, `AI:AzureOpenAIKey`, `AI:ChatDeploymentName` and `AI:EmbeddingDeploymentName`. Optional: `AI:DocIntelEndpoint` and `AI:DocIntelKey` for contract uploads, `AI:TavilyKey` for the agent's web search.
 
 ```bash
 dotnet ef database update --project Hukuk.AI.Data
