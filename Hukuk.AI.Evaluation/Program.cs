@@ -84,6 +84,19 @@ if (args.Contains("taslak"))
     return;
 }
 
+// "dotnet run -- ajan": agent modunda araç seçimi (bilgi tabanı / web / hiçbiri). Gerçek web araması yapar (Tavily kotası).
+if (args.Contains("ajan"))
+{
+    await using var agentDb = new AppDbContext(new DbContextOptionsBuilder<AppDbContext>().UseHukukAiPostgres(Required("ConnectionStrings:DefaultConnection")).Options);
+    var hybridCache = new ServiceCollection().AddHybridCache().Services.BuildServiceProvider().GetRequiredService<HybridCache>();
+    var search = new KnowledgeSearch(new Retriever(agentDb), new QueryEmbedder(generator, hybridCache, NullLogger<QueryEmbedder>.Instance), NullLogger<KnowledgeSearch>.Instance);
+    using var http = new HttpClient();
+    WebSearchClient.Configure(http, Required("AI:TavilyKey"));
+    var agent = new AgentAnswerService(kernel, search, NullLogger<AgentAnswerService>.Instance, new WebSearchClient(http));
+    await AgentEval.RunAsync(agent, Path.Combine(dataDir, "eval", "agent-questions-v1.json"), Path.Combine(dataDir, "eval", "results"), matrix: args.Contains("matris"));
+    return;
+}
+
 // "dotnet run -- belgesoru": sentetik sözleşmeler üzerinde soru-cevap kalitesi (parçalar gerçek Redis'e yazılır).
 if (args.Contains("belgesoru"))
 {

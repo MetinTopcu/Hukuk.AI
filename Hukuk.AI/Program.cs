@@ -71,6 +71,11 @@ builder.Services.AddScoped<KnowledgeBasePlugin>();
 builder.Services.AddScoped<LegalAnswerService>();
 builder.Services.AddScoped<CachedLegalAnswerService>();
 
+// Agent modu: web araması (Tavily) anahtarı yoksa API yine açılır, model sadece bilgi tabanı aracını görür.
+if (configuration["AI:TavilyKey"] is { Length: > 0 } tavilyKey)
+    builder.Services.AddHttpClient<WebSearchClient>(http => WebSearchClient.Configure(http, tavilyKey));
+builder.Services.AddScoped<AgentAnswerService>();
+
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 

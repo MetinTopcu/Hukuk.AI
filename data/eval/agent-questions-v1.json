@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "questions": [
+    { "id": "a1", "expected": "kb", "question": "Ev sahibi depozito olarak en fazla kaç aylık kira isteyebilir?" },
+    { "id": "a2", "expected": "kb", "question": "İş sözleşmesinde deneme süresi en fazla ne kadar olabilir?" },
+    { "id": "a3", "expected": "kb", "question": "Fazla mesai ücreti nasıl hesaplanır?" },
+    { "id": "a4", "expected": "kb", "question": "Kiracı kirayı ödemezse ev sahibi ne yapabilir?" },
+    { "id": "a5", "expected": "kb", "question": "TBK md. 347'ye göre ev sahibi kira sözleşmesini ne zaman sona erdirebilir?" },
+    { "id": "w1", "expected": "web", "question": "Bu yıl net asgari ücret ne kadar?" },
+    { "id": "w2", "expected": "web", "question": "Güncel kıdem tazminatı tavanı kaç lira?" },
+    { "id": "w3", "expected": "web", "question": "İnternetten aldığım üründen kaç gün içinde cayabilirim?" },
+    { "id": "w4", "expected": "web", "question": "Anlaşmalı boşanma için en az ne kadar süre evli olmak gerekir?" },
+    { "id": "b1", "expected": "kb_web", "question": "Bu ay kirası yenilenen konut kiracısına kanuna göre en fazla yüzde kaç zam yapılabilir, güncel oran nedir?" },
+    { "id": "n1", "expected": "none", "question": "Akşam yemeğine ne pişirsem?" },
+    { "id": "n2", "expected": "none", "question": "Python'da bir listeyi nasıl sıralarım?" }
+  ]
+}
