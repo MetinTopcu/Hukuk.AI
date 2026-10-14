@@ -27,10 +27,11 @@ public record DocumentInfo(string Id, string FileName, string ContentType, long 
 // Yüklenen belgeler Redis'te oturumluk tutulur (kararlar 2026-09-30): kalıcı kopya yok (KVKK), kullanılmayan belge
 // 2 saat sonra kendiliğinden silinir; her okumada süre baştan başlar (kayan TTL, parçalar dahil).
 //   doc:{id}               HASH  bilgi alanları + "file" (ham dosya; işlenince silinir) + "report" (risk raporu JSON'u)
+//                                + "userId" (belgenin sahibi) + "chargeId" (düşülen kredi hareketi)
 //   docchunk:{id}:{n}      HASH  parça: doc_id (TAG), label, heading, page, content, token_count, embedding
 //   doc:{id}:status        Pub/Sub kanalı: durum her değiştiğinde DocumentInfo JSON'u (SSE bunu dinler)
 // Kuyruk: bkz. DocumentQueue.
-// Id tahmin edilemez (128 bit rastgele): kullanıcı/oturum yönetimi gelene kadar belgeye erişim anahtarı id'nin kendisi.
+// Erişim: belge sadece yükleyen kullanıcıya açık (bkz. IsOwnerAsync); id ayrıca tahmin edilemez (128 bit rastgele).
 public class DocumentStore(IConnectionMultiplexer redis, ILogger<DocumentStore> logger)
 {
     public static readonly TimeSpan Ttl = TimeSpan.FromHours(2);
@@ -78,7 +79,8 @@ public class DocumentStore(IConnectionMultiplexer redis, ILogger<DocumentStore> 
     }
 
     // Bilgi + dosya kaydı ve kuyruk kaydı tek transaction'da: ya ikisi de yazılır ya hiçbiri (kuyrukta dosyasız iş kalmaz).
-    public async Task<DocumentInfo> AddAsync(string fileName, string contentType, byte[] content)
+    // chargeId: yükleme için düşülen kredinin hareket numarası; işleme başarısız olursa iade edilir (bkz. DocumentWorker).
+    public async Task<DocumentInfo> AddAsync(string userId, long chargeId, string fileName, string contentType, byte[] content)
     {
         var info = new DocumentInfo(Guid.NewGuid().ToString("N"), fileName, contentType, content.Length,
             DateTimeOffset.UtcNow, DocumentStatus.Queued, null, null, null);
@@ -92,6 +94,8 @@ public class DocumentStore(IConnectionMultiplexer redis, ILogger<DocumentStore> 
             new("createdAt", info.CreatedAt.ToUnixTimeMilliseconds()),
             new("status", info.Status),
             new("file", content),
+            new("userId", userId),
+            new("chargeId", chargeId),
         ]);
         _ = tx.KeyExpireAsync(Key(info.Id), Ttl);
         DocumentQueue.Enqueue(tx, info.Id);
@@ -107,6 +111,17 @@ public class DocumentStore(IConnectionMultiplexer redis, ILogger<DocumentStore> 
         if (info is not null)
             await TouchAsync(id, info.Chunks ?? 0);
         return info;
+    }
+
+    // Kullanıcıya açık her uç önce bunu sorar: başkasının belgesi "yok" gibi davranır (404; var olduğu da sızmaz).
+    public async Task<bool> IsOwnerAsync(string id, string userId) =>
+        await Db.HashGetAsync(Key(id), "userId") == userId;
+
+    // İşleme başarısız bittiyse iade edilecek kredi hareketi; değilse (ya da belge yoksa) null.
+    public async Task<long?> GetFailedChargeAsync(string id)
+    {
+        var v = await Db.HashGetAsync(Key(id), ["status", "chargeId"]);
+        return v[0] == DocumentStatus.Failed && !v[1].IsNull ? (long)v[1] : null;
     }
 
     // Worker için: bilgi + ham dosya. Dosya yoksa (belge silinmiş ya da zaten işlenmiş) null.

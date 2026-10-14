@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
+using Hukuk.AI.Credits;
 using Hukuk.AI.Drafting;
 using Microsoft.AspNetCore.Mvc;
 
@@ -7,9 +8,10 @@ namespace Hukuk.AI.Controllers;
 
 // Sözleşme taslağı: kullanıcı isteğini serbest metinle yazar, eksik bilgiler soru olarak döner, bilgiler tamamlanınca
 // taslak stream edilir. Oturum Redis'te (bkz. DraftStore).
-[ApiController]
+// Oturum sadece açan kullanıcıya açık. Kredi: bilgi toplama ücretsiz, taslak yazımı (stream) ücretli; yazım
+// başarısız olursa iade edilir.
 [Route("api/drafts")]
-public class DraftsController(DraftStore store, DraftIntake intake, DraftWriter writer, ILogger<DraftsController> logger) : ControllerBase
+public class DraftsController(DraftStore store, DraftIntake intake, DraftWriter writer, CreditService credits, ILogger<DraftsController> logger) : ApiController
 {
     public const string Disclaimer = "Bu taslak genel bilgilendirme amaçlıdır, hukuki danışmanlık yerine geçmez; imzalamadan önce bir avukata danışın.";
 
@@ -38,18 +40,18 @@ public class DraftsController(DraftStore store, DraftIntake intake, DraftWriter 
             return Problem($"Şimdilik sadece şu taslaklar hazırlanabiliyor: {string.Join(", ", DraftTemplates.All.Select(t => t.Name))}.",
                 statusCode: StatusCodes.Status422UnprocessableEntity);
 
-        var session = await store.CreateAsync(template.Type, request.Request.Trim(), fields);
+        var session = await store.CreateAsync(UserId.ToString(), template.Type, request.Request.Trim(), fields);
         return CreatedAtAction(nameof(Get), new { id = session.Id }, ToResponse(session, template));
     }
 
     [HttpGet("{id}")]
     public async Task<ActionResult<DraftResponse>> Get(string id) =>
-        await store.GetAsync(id) is { } session ? ToResponse(session, DraftTemplates.Find(session.Type)!) : NotFound();
+        await store.GetAsync(id, UserId.ToString()) is { } session ? ToResponse(session, DraftTemplates.Find(session.Type)!) : NotFound();
 
     [HttpPost("{id}/answers")]
     public async Task<ActionResult<DraftResponse>> Answer(string id, AnswersRequest request)
     {
-        var session = await store.GetAsync(id);
+        var session = await store.GetAsync(id, UserId.ToString());
         if (session is null)
             return NotFound();
 
@@ -63,15 +65,20 @@ public class DraftsController(DraftStore store, DraftIntake intake, DraftWriter 
     // Server-Sent Events: taslak yazıldıkça "delta" ({text}), yazım bitince "checking" (kanuna uygunluk denetimi
     // başladı, ~30 sn), düzeltilen her madde için "revision" ({clause, title, text, reason, citations}), sonunda "done"
     // ({draft, revisions, unresolved, basis, citations, disclaimer}). Hata olursa "error".
-    // Oturum yoksa 404, zorunlu bilgi eksikse 409 (olay akışı başlamadan).
+    // Oturum yoksa 404, zorunlu bilgi eksikse 409, kredi yetmiyorsa 402 (olay akışı başlamadan).
     [HttpPost("{id}/stream")]
     public async Task Stream(string id, CancellationToken cancellationToken)
     {
-        var session = await store.GetAsync(id);
+        var session = await store.GetAsync(id, UserId.ToString());
         var template = session is null ? null : DraftTemplates.Find(session.Type);
         if (session is null || template is null || template.Missing(session.Fields).Count > 0)
         {
             Response.StatusCode = session is null ? StatusCodes.Status404NotFound : StatusCodes.Status409Conflict;
+            return;
+        }
+        if (await credits.ReserveAsync(UserId, CreditOperations.Draft, cancellationToken) is not { } charge)
+        {
+            Response.StatusCode = StatusCodes.Status402PaymentRequired;
             return;
         }
 
@@ -94,6 +101,7 @@ public class DraftsController(DraftStore store, DraftIntake intake, DraftWriter 
         catch (Exception e) when (e is not OperationCanceledException)
         {
             logger.LogError(e, "Taslak streaming hatası");
+            await credits.RefundAsync(charge);
             await Send("error", new { message = "Taslak üretilemedi." });
         }
     }

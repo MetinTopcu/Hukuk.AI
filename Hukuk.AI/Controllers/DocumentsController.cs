@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Hukuk.AI.Credits;
 using Hukuk.AI.Documents;
 using Hukuk.AI.Retrieval;
 using Microsoft.AspNetCore.Mvc;
@@ -8,11 +9,15 @@ namespace Hukuk.AI.Controllers;
 
 // Kullanıcının yüklediği belge (sözleşme, dilekçe...): yükleme hemen 202 döner, işleme arka planda (Redis Streams
 // kuyruğu). İlerleme GET ile sorgulanır ya da events (SSE) ile canlı izlenir.
-[ApiController]
+// Belge sadece yükleyen kullanıcıya açık: başkasının (ya da olmayan) belgesi 404.
+// Kredi: yükleme ücreti (rapor dahil) yüklemede düşülür, işleme "failed" biterse worker iade eder; belge sorusu ayrı ücretli.
 [Route("api/documents")]
-public class DocumentsController(DocumentStore store, DocumentAnswerService answers, IConnectionMultiplexer redis,
-    ILogger<DocumentsController> logger) : ControllerBase
+public class DocumentsController(DocumentStore store, DocumentAnswerService answers, CreditService credits, IConnectionMultiplexer redis,
+    ILogger<DocumentsController> logger) : ApiController
 {
+    private async Task<DocumentInfo?> FindAsync(string id) =>
+        await store.IsOwnerAsync(id, UserId.ToString()) ? await store.GetAsync(id) : null;
+
     // 30 sayfalık taranmış PDF ~5-15 MB. Document Intelligence F0 katmanı 4 MB'tan büyük dosyayı reddeder.
     public const long MaxFileBytes = 20 * 1024 * 1024;
 
@@ -39,13 +44,23 @@ public class DocumentsController(DocumentStore store, DocumentAnswerService answ
             return Problem($"Desteklenen türler: {string.Join(", ", DocumentFormats.Extensions)} (dosya içeriği uzantıyla uyuşmalı).",
                 statusCode: StatusCodes.Status415UnsupportedMediaType);
 
-        var info = await store.AddAsync(fileName, contentType, content);
-        return AcceptedAtAction(nameof(Get), new { id = info.Id }, info);
+        if (await credits.ReserveAsync(UserId, CreditOperations.Document, cancellationToken) is not { } charge)
+            return InsufficientCredits();
+        try
+        {
+            var info = await store.AddAsync(UserId.ToString(), charge, fileName, contentType, content);
+            return AcceptedAtAction(nameof(Get), new { id = info.Id }, info);
+        }
+        catch
+        {
+            await credits.RefundAsync(charge);
+            throw;
+        }
     }
 
     [HttpGet("{id}")]
     public async Task<ActionResult<DocumentInfo>> Get(string id) =>
-        await store.GetAsync(id) is { } info ? info : NotFound();
+        await FindAsync(id) is { } info ? info : NotFound();
 
     public record ReportResponse(RiskReport Report, string Disclaimer);
 
@@ -53,10 +68,10 @@ public class DocumentsController(DocumentStore store, DocumentAnswerService answ
     [HttpGet("{id}/report")]
     public async Task<ActionResult<ReportResponse>> Report(string id)
     {
-        if (await store.GetReportAsync(id) is { } report)
-            return new ReportResponse(report, QuestionsController.Disclaimer);
-        return await store.GetAsync(id) is null
-            ? NotFound()
+        if (await FindAsync(id) is null)
+            return NotFound();
+        return await store.GetReportAsync(id) is { } report
+            ? new ReportResponse(report, QuestionsController.Disclaimer)
             : Problem("Rapor henüz hazır değil.", statusCode: StatusCodes.Status409Conflict);
     }
 
@@ -66,14 +81,24 @@ public class DocumentsController(DocumentStore store, DocumentAnswerService answ
     [HttpPost("{id}/questions")]
     public async Task<ActionResult<AskResponse>> Ask(string id, QuestionsController.AskRequest request, CancellationToken cancellationToken)
     {
-        var info = await store.GetAsync(id);
+        var info = await FindAsync(id);
         if (info is null)
             return NotFound();
         if (info.Status != DocumentStatus.Ready)
             return Problem("Belge henüz hazır değil.", statusCode: StatusCodes.Status409Conflict);
 
-        var result = await answers.AnswerAsync(id, info.Chunks ?? 0, request.Question.Trim(), cancellationToken: cancellationToken);
-        return new AskResponse(result.Answer, result.DocumentCitations, result.Citations, QuestionsController.Disclaimer);
+        if (await credits.ReserveAsync(UserId, CreditOperations.DocumentQuestion, cancellationToken) is not { } charge)
+            return InsufficientCredits();
+        try
+        {
+            var result = await answers.AnswerAsync(id, info.Chunks ?? 0, request.Question.Trim(), cancellationToken: cancellationToken);
+            return new AskResponse(result.Answer, result.DocumentCitations, result.Citations, QuestionsController.Disclaimer);
+        }
+        catch (Exception e) when (e is not OperationCanceledException)
+        {
+            await credits.RefundAsync(charge);
+            throw;
+        }
     }
 
     // Server-Sent Events: cevap üretildikçe "delta" olayları ({text}), sonunda "done" ({documentCitations, citations,
@@ -81,10 +106,15 @@ public class DocumentsController(DocumentStore store, DocumentAnswerService answ
     [HttpPost("{id}/questions/stream")]
     public async Task AskStream(string id, QuestionsController.AskRequest request, CancellationToken cancellationToken)
     {
-        var info = await store.GetAsync(id);
+        var info = await FindAsync(id);
         if (info?.Status != DocumentStatus.Ready)
         {
             Response.StatusCode = info is null ? StatusCodes.Status404NotFound : StatusCodes.Status409Conflict;
+            return;
+        }
+        if (await credits.ReserveAsync(UserId, CreditOperations.DocumentQuestion, cancellationToken) is not { } charge)
+        {
+            Response.StatusCode = StatusCodes.Status402PaymentRequired;
             return;
         }
 
@@ -105,6 +135,7 @@ public class DocumentsController(DocumentStore store, DocumentAnswerService answ
         catch (Exception e) when (e is not OperationCanceledException)
         {
             logger.LogError(e, "Belge sorusu streaming hatası");
+            await credits.RefundAsync(charge);
             await Send("error", new { message = "Cevap üretilemedi." });
         }
     }
@@ -117,7 +148,7 @@ public class DocumentsController(DocumentStore store, DocumentAnswerService answ
         var subscription = await redis.GetSubscriber().SubscribeAsync(DocumentStore.StatusChannel(id));
         try
         {
-            var info = await store.GetAsync(id);
+            var info = await FindAsync(id);
             if (info is null)
             {
                 Response.StatusCode = StatusCodes.Status404NotFound;

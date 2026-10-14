@@ -1,3 +1,4 @@
+using Hukuk.AI.Credits;
 using Hukuk.AI.Documents;
 
 namespace Hukuk.AI.Workers;
@@ -6,7 +7,7 @@ namespace Hukuk.AI.Workers;
 // ayrı bir Worker projesine taşımak ya da birden çok kopya çalıştırmak kod değişikliği gerektirmez.
 // Aynı anda tek belge işler. StackExchange.Redis bloklayan okuma (XREADGROUP BLOCK) desteklemediği için kuyruk boşken
 // kısa aralıklarla yoklanır.
-public class DocumentWorker(DocumentQueue queue, IServiceScopeFactory scopes, ILogger<DocumentWorker> logger) : BackgroundService
+public class DocumentWorker(DocumentQueue queue, DocumentStore store, IServiceScopeFactory scopes, ILogger<DocumentWorker> logger) : BackgroundService
 {
     private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(1);
     private static readonly TimeSpan ErrorDelay = TimeSpan.FromSeconds(5);
@@ -29,7 +30,13 @@ public class DocumentWorker(DocumentQueue queue, IServiceScopeFactory scopes, IL
                 }
 
                 await using (var scope = scopes.CreateAsyncScope())
+                {
                     await scope.ServiceProvider.GetRequiredService<DocumentProcessor>().ProcessAsync(job.DocumentId, stoppingToken);
+                    // İşlenemeyen belgenin ücreti iade edilir. ACK'ten önce: arada çökülürse iş tekrar alınır ve iade
+                    // yeniden denenir (aynı hareket iki kez iade edilemez).
+                    if (await store.GetFailedChargeAsync(job.DocumentId) is { } charge)
+                        await scope.ServiceProvider.GetRequiredService<CreditService>().RefundAsync(charge);
+                }
                 await queue.AckAsync(job);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)

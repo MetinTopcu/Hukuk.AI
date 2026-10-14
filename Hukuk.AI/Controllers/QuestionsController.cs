@@ -1,14 +1,16 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
+using Hukuk.AI.Credits;
 using Hukuk.AI.Retrieval;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Hukuk.AI.Controllers;
 
 // Ortak hukuk bilgi tabanı üzerinden soru-cevap (RAG).
-[ApiController]
+// Kredi: istek başında düşülür, cevap üretilemezse iade edilir; kullanıcı isteği yarıda keserse iade yok.
+// Semantic cache'ten gelen cevap da tam ücretlidir (karar 2026-10-13).
 [Route("api/questions")]
-public class QuestionsController(CachedLegalAnswerService answers, ILogger<QuestionsController> logger) : ControllerBase
+public class QuestionsController(CachedLegalAnswerService answers, CreditService credits, ILogger<QuestionsController> logger) : ApiController
 {
     public const string Disclaimer = "Bu cevap genel bilgilendirme amaçlıdır, hukuki danışmanlık yerine geçmez.";
 
@@ -18,17 +20,34 @@ public class QuestionsController(CachedLegalAnswerService answers, ILogger<Quest
     public record AskResponse(string Answer, List<KnowledgeSource> Citations, string Disclaimer, CacheMatch? Cache);
 
     [HttpPost]
-    public async Task<AskResponse> Ask(AskRequest request, CancellationToken cancellationToken)
+    public async Task<ActionResult<AskResponse>> Ask(AskRequest request, CancellationToken cancellationToken)
     {
-        var (result, cache) = await answers.AnswerAsync(request.Question.Trim(), cancellationToken: cancellationToken);
-        return new AskResponse(result.Answer, result.Citations, Disclaimer, cache);
+        if (await credits.ReserveAsync(UserId, CreditOperations.Question, cancellationToken) is not { } charge)
+            return InsufficientCredits();
+        try
+        {
+            var (result, cache) = await answers.AnswerAsync(request.Question.Trim(), cancellationToken: cancellationToken);
+            return new AskResponse(result.Answer, result.Citations, Disclaimer, cache);
+        }
+        catch (Exception e) when (e is not OperationCanceledException)
+        {
+            await credits.RefundAsync(charge);
+            throw;
+        }
     }
 
     // Server-Sent Events: cevap üretildikçe "delta" olayları ({text}), sonunda "done" ({citations, disclaimer, cache}).
     // Atıflar cevabın tamamına bakılarak seçildiği için sonda gelir. Hata olursa "error" olayı.
+    // Kredi yetmiyorsa 402 (olay akışı başlamadan).
     [HttpPost("stream")]
     public async Task Stream(AskRequest request, CancellationToken cancellationToken)
     {
+        if (await credits.ReserveAsync(UserId, CreditOperations.Question, cancellationToken) is not { } charge)
+        {
+            Response.StatusCode = StatusCodes.Status402PaymentRequired;
+            return;
+        }
+
         Response.ContentType = "text/event-stream";
         Response.Headers.CacheControl = "no-cache";
 
@@ -46,6 +65,7 @@ public class QuestionsController(CachedLegalAnswerService answers, ILogger<Quest
         catch (Exception e) when (e is not OperationCanceledException)
         {
             logger.LogError(e, "Streaming cevap hatası");
+            await credits.RefundAsync(charge);
             await Send("error", new { message = "Cevap üretilemedi." });
         }
     }
@@ -57,16 +77,32 @@ public class QuestionsController(CachedLegalAnswerService answers, ILogger<Quest
 
     // Agent modu: hangi kaynağa (bilgi tabanı / web) bakılacağına model karar verir. Cache yok.
     [HttpPost("agent")]
-    public async Task<AgentResponse> AskAgent(AskRequest request, [FromServices] AgentAnswerService agent, CancellationToken cancellationToken)
+    public async Task<ActionResult<AgentResponse>> AskAgent(AskRequest request, [FromServices] AgentAnswerService agent, CancellationToken cancellationToken)
     {
-        var result = await agent.AnswerAsync(request.Question.Trim(), cancellationToken: cancellationToken);
-        return new AgentResponse(result.Answer, result.Citations, result.WebCitations, result.WebCitations.Count > 0 ? WebWarning : null, result.ToolCalls, Disclaimer);
+        if (await credits.ReserveAsync(UserId, CreditOperations.Agent, cancellationToken) is not { } charge)
+            return InsufficientCredits();
+        try
+        {
+            var result = await agent.AnswerAsync(request.Question.Trim(), cancellationToken: cancellationToken);
+            return new AgentResponse(result.Answer, result.Citations, result.WebCitations, result.WebCitations.Count > 0 ? WebWarning : null, result.ToolCalls, Disclaimer);
+        }
+        catch (Exception e) when (e is not OperationCanceledException)
+        {
+            await credits.RefundAsync(charge);
+            throw;
+        }
     }
 
     // SSE: her araç çağrısında "tool" ({tool, query}), cevap üretildikçe "delta", sonunda "done".
     [HttpPost("agent/stream")]
     public async Task StreamAgent(AskRequest request, [FromServices] AgentAnswerService agent, CancellationToken cancellationToken)
     {
+        if (await credits.ReserveAsync(UserId, CreditOperations.Agent, cancellationToken) is not { } charge)
+        {
+            Response.StatusCode = StatusCodes.Status402PaymentRequired;
+            return;
+        }
+
         Response.ContentType = "text/event-stream";
         Response.Headers.CacheControl = "no-cache";
 
@@ -84,6 +120,7 @@ public class QuestionsController(CachedLegalAnswerService answers, ILogger<Quest
         catch (Exception e) when (e is not OperationCanceledException)
         {
             logger.LogError(e, "Agent streaming cevap hatası");
+            await credits.RefundAsync(charge);
             await Send("error", new { message = "Cevap üretilemedi." });
         }
     }

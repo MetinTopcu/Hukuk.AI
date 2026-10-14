@@ -10,25 +10,26 @@ public record DraftSession(string Id, string Type, string Request, Dictionary<st
 
 // Taslak oturumu Redis'te tutulur (karar 2026-10-05): ilk istek bilgileri çıkarır ve eksikleri sorar, sonraki istekler
 // sadece id ile devam eder. Yüklenen belgelerle aynı desen: kalıcı kopya yok, 2 saat kayan TTL.
-//   draft:{id}   HASH  type, request, fields (JSON), createdAt, result (JSON)
-// Id tahmin edilemez (128 bit rastgele): kullanıcı yönetimi gelene kadar erişim anahtarı id'nin kendisi.
+//   draft:{id}   HASH  userId, type, request, fields (JSON), createdAt, result (JSON)
+// Erişim: oturum sadece açan kullanıcıya açık; id ayrıca tahmin edilemez (128 bit rastgele).
 public class DraftStore(IConnectionMultiplexer redis)
 {
     public static readonly TimeSpan Ttl = DocumentStore.Ttl;
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
-    private static readonly RedisValue[] SessionFields = ["type", "request", "fields", "createdAt", "result"];
+    private static readonly RedisValue[] SessionFields = ["type", "request", "fields", "createdAt", "result", "userId"];
 
     private IDatabase Db => redis.GetDatabase();
 
     private static string Key(string id) => $"draft:{id}";
 
-    public async Task<DraftSession> CreateAsync(string type, string request, Dictionary<string, string> fields)
+    public async Task<DraftSession> CreateAsync(string userId, string type, string request, Dictionary<string, string> fields)
     {
         var session = new DraftSession(Guid.NewGuid().ToString("N"), type, request, fields, DateTimeOffset.UtcNow, null);
         await WriteAsync(session.Id,
         [
+            new("userId", userId),
             new("type", session.Type),
             new("request", session.Request),
             new("fields", JsonSerializer.Serialize(session.Fields, JsonOptions)),
@@ -37,11 +38,11 @@ public class DraftStore(IConnectionMultiplexer redis)
         return session;
     }
 
-    // Oturum yoksa (hiç olmadı veya TTL doldu) null. Okuma süreyi uzatır.
-    public async Task<DraftSession?> GetAsync(string id)
+    // Oturum yoksa (hiç olmadı veya TTL doldu) ya da başka kullanıcınınsa null. Okuma süreyi uzatır.
+    public async Task<DraftSession?> GetAsync(string id, string userId)
     {
         var v = await Db.HashGetAsync(Key(id), SessionFields);
-        if (v[0].IsNull)
+        if (v[0].IsNull || v[5] != userId)
             return null;
         await Db.KeyExpireAsync(Key(id), Ttl);
         return new DraftSession(id, v[0]!, v[1]!,

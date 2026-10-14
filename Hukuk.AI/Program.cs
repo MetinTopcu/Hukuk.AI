@@ -1,9 +1,17 @@
+using System.Threading.RateLimiting;
 using Hukuk.AI.Data;
 using Azure;
 using Azure.AI.DocumentIntelligence;
+using Hukuk.AI.Auth;
+using Hukuk.AI.Controllers;
+using Hukuk.AI.Credits;
+using Hukuk.AI.Data.Entities;
 using Hukuk.AI.Documents;
 using Hukuk.AI.Drafting;
 using Hukuk.AI.Workers;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.JsonWebTokens;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.ML.Tokenizers;
 using Hukuk.AI.Retrieval;
 using Microsoft.SemanticKernel;
@@ -16,6 +24,48 @@ var configuration = builder.Configuration; // Development'ta user secrets otomat
 string Required(string key) => configuration[key] is { Length: > 0 } value ? value : throw new InvalidOperationException($"{key} ayarı bulunamadı (user secrets).");
 
 builder.Services.AddDbContext<AppDbContext>(o => o.UseHukukAiPostgres(Required("ConnectionStrings:DefaultConnection")));
+
+// Kimlik (kararlar 2026-10-13): ASP.NET Core Identity (parola hash'i, kilitleme) + JWT access token + refresh token.
+// AddIdentityCore: çerez/rol/arayüz yok, sadece UserManager.
+builder.Services.AddIdentityCore<AppUser>(o =>
+    {
+        o.User.RequireUniqueEmail = true;
+        o.Password.RequiredLength = 8;
+        o.Password.RequireNonAlphanumeric = false;
+        o.Password.RequireUppercase = false;
+    })
+    .AddEntityFrameworkStores<AppDbContext>();
+
+var jwt = new JwtOptions(Required("Auth:Issuer"), Required("Auth:Audience"), Required("Auth:JwtKey"),
+    configuration.GetValue<int>("Auth:AccessTokenMinutes"), configuration.GetValue<int>("Auth:RefreshTokenDays"));
+builder.Services.AddSingleton(jwt);
+builder.Services.AddScoped<TokenService>();
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(o =>
+{
+    o.MapInboundClaims = false; // "sub" claim'i ClaimTypes.NameIdentifier'a çevrilmesin
+    o.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidIssuer = jwt.Issuer,
+        ValidAudience = jwt.Audience,
+        IssuerSigningKey = jwt.SigningKey,
+        ClockSkew = TimeSpan.FromSeconds(30), // varsayılan 5 dk, 15 dk'lık token için fazla
+    };
+});
+builder.Services.AddAuthorization();
+
+builder.Services.AddSingleton(configuration.GetSection("Credits").Get<CreditOptions>() ?? throw new InvalidOperationException("Credits ayarı bulunamadı."));
+builder.Services.AddScoped<CreditService>();
+
+// İstek sınırı: sabit pencere (dakikada N). Girişli uçlarda kullanıcı başına, kayıt/giriş uçlarında IP başına.
+// Sayaçlar süreç belleğinde: birden çok kopya çalışırsa her kopya ayrı sayar.
+builder.Services.AddRateLimiter(o =>
+{
+    o.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    RateLimitPartition<string> PerMinute(string key, string setting) => RateLimitPartition.GetFixedWindowLimiter(key,
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = configuration.GetValue<int>(setting), Window = TimeSpan.FromMinutes(1) });
+    o.AddPolicy(RateLimitPolicies.User, http => PerMinute(http.User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? "anonymous", "RateLimit:UserPerMinute"));
+    o.AddPolicy(RateLimitPolicies.Auth, http => PerMinute(http.Connection.RemoteIpAddress?.ToString() ?? "unknown", "RateLimit:AuthPerMinute"));
+});
 
 // Chunk'larla aynı embedding modeli ve boyut; farklı olursa vektörler karşılaştırılamaz.
 #pragma warning disable SKEXP0010
@@ -89,6 +139,9 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 
 app.UseHttpsRedirection();
+app.UseAuthentication();
+app.UseRateLimiter(); // kimlikten sonra: kullanıcı başına sınır için kullanıcı bilinmeli
+app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
