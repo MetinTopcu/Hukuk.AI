@@ -8,6 +8,7 @@ using Hukuk.AI.Credits;
 using Hukuk.AI.Data.Entities;
 using Hukuk.AI.Documents;
 using Hukuk.AI.Drafting;
+using Hukuk.AI.Payments;
 using Hukuk.AI.Workers;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.JsonWebTokens;
@@ -55,6 +56,11 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddSingleton(configuration.GetSection("Credits").Get<CreditOptions>() ?? throw new InvalidOperationException("Credits ayarı bulunamadı."));
 builder.Services.AddScoped<CreditService>();
+
+// Ödeme: iyzico anahtarı yoksa API yine açılır, ödeme uçları 503 döner.
+if (configuration["Iyzico:ApiKey"] is { Length: > 0 } iyzicoKey)
+    builder.Services.AddSingleton(new IyzicoClient(new IyzicoOptions(iyzicoKey, Required("Iyzico:SecretKey"),
+        Required("Iyzico:BaseUrl"), Required("Iyzico:CallbackBaseUrl"))));
 
 // İstek sınırı: sabit pencere (dakikada N). Girişli uçlarda kullanıcı başına, kayıt/giriş uçlarında IP başına.
 // Sayaçlar süreç belleğinde: birden çok kopya çalışırsa her kopya ayrı sayar.
