@@ -5,6 +5,7 @@ using Azure.AI.DocumentIntelligence;
 using Hukuk.AI.Auth;
 using Hukuk.AI.Controllers;
 using Hukuk.AI.Credits;
+using Hukuk.AI.Legal;
 using Hukuk.AI.Data.Entities;
 using Hukuk.AI.Documents;
 using Hukuk.AI.Drafting;
@@ -56,6 +57,7 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddSingleton(configuration.GetSection("Credits").Get<CreditOptions>() ?? throw new InvalidOperationException("Credits ayarı bulunamadı."));
 builder.Services.AddScoped<CreditService>();
+builder.Services.AddSingleton(PrivacyNotice.Load(builder.Environment.ContentRootPath, Required("Privacy:Version")));
 
 // Ödeme: iyzico anahtarı yoksa API yine açılır, ödeme uçları 503 döner.
 if (configuration["Iyzico:ApiKey"] is { Length: > 0 } iyzicoKey)

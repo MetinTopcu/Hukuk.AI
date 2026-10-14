@@ -15,8 +15,9 @@ public class CachedLegalAnswerService(LegalAnswerService answers, QueryEmbedder 
         var sw = Stopwatch.StartNew();
         // Aynı vektör aramada da kullanılır; ikinci istek HybridCache L1'den (bellekten) gelir.
         var vector = await embedder.EmbedAsync(question, cancellationToken);
+        var cacheable = !PersonalData.Contains(question); // KVKK: kişisel veri içeren soru paylaşımlı cache'e girmez
 
-        if (await cache.FindAsync(question, vector, cancellationToken) is { } hit)
+        if (cacheable && await cache.FindAsync(question, vector, cancellationToken) is { } hit)
         {
             logger.LogInformation("Cevap cache'ten: {TotalMs} ms", sw.ElapsedMilliseconds);
             if (onDelta is not null)
@@ -28,7 +29,8 @@ public class CachedLegalAnswerService(LegalAnswerService answers, QueryEmbedder 
         {
             // Lider isteği iptal olsa (kullanıcı sayfayı kapatsa) bile bekleyenler için üretim sürer: CancellationToken.None.
             var answer = await answers.AnswerAsync(question, onDelta is null ? null : SafeDelta(onDelta), CancellationToken.None);
-            await cache.StoreAsync(question, vector, answer);
+            if (cacheable)
+                await cache.StoreAsync(question, vector, answer);
             return answer;
         });
 

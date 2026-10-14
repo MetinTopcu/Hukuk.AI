@@ -21,7 +21,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityUser
         base.OnModelCreating(modelBuilder);
         modelBuilder.HasPostgresExtension("vector");
 
-        modelBuilder.Entity<AppUser>().ToTable("users");
+        modelBuilder.Entity<AppUser>(e =>
+        {
+            e.ToTable("users");
+            e.Property(x => x.PrivacyVersion).HasMaxLength(20);
+        });
         modelBuilder.Entity<IdentityUserClaim<Guid>>().ToTable("user_claims");
         modelBuilder.Entity<IdentityUserLogin<Guid>>().ToTable("user_logins");
         modelBuilder.Entity<IdentityUserToken<Guid>>().ToTable("user_tokens");

@@ -26,6 +26,14 @@ public partial class QueryEmbedder(IEmbeddingGenerator<string, Embedding<float>>
     public async Task<float[]> EmbedAsync(string question, CancellationToken cancellationToken = default)
     {
         var text = Normalize(question);
+        // Kişisel veri içeren sorunun vektörü Redis'e yazılmaz (anahtar hash olsa da vektör metni kısmen ele verebilir).
+        // Bedeli: aynı istekte vektör iki kez üretilir (cevap akışı + arama), ~0,5 sn.
+        if (PersonalData.Contains(text))
+        {
+            logger.LogInformation("Embedding cache atlandı: kişisel veri");
+            return (await generator.GenerateVectorAsync(text, cancellationToken: cancellationToken)).ToArray();
+        }
+
         var miss = false;
         // byte[] HybridCache'te serileştirilmeden saklanır (FLOAT32, 1536 x 4 = 6 KB).
         var bytes = await cache.GetOrCreateAsync($"emb:{ModelVersion}:{Hash(text)}", async ct =>

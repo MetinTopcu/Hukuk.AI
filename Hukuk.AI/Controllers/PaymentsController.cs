@@ -36,7 +36,9 @@ public class PaymentsController(AppDbContext db, CreditService credits, CreditOp
         if (options.Packages.FirstOrDefault(p => p.Key == request.Package) is not { } package)
             return Problem($"Paketler: {string.Join(", ", options.Packages.Select(p => p.Key))}.", statusCode: StatusCodes.Status400BadRequest);
 
-        var email = await db.Users.Where(u => u.Id == UserId).Select(u => u.Email).SingleAsync(cancellationToken);
+        // Silinmiş hesabın e-postası yok (anonimleştirildi); hâlâ geçerli access token'la ödeme başlatılamaz.
+        if (await db.Users.Where(u => u.Id == UserId && u.DeletedAt == null).Select(u => u.Email).SingleOrDefaultAsync(cancellationToken) is not { } email)
+            return Unauthorized();
         var payment = new Payment
         {
             Id = Guid.NewGuid(),
@@ -52,7 +54,7 @@ public class PaymentsController(AppDbContext db, CreditService credits, CreditOp
         await db.SaveChangesAsync(cancellationToken);
 
         var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1";
-        var checkout = await iyzico.StartAsync(payment, email!, new BuyerInfo(request.Name, request.Surname, request.Address, request.City), ip);
+        var checkout = await iyzico.StartAsync(payment, email, new BuyerInfo(request.Name, request.Surname, request.Address, request.City), ip);
         payment.ProviderToken = checkout.Token;
         await db.SaveChangesAsync(cancellationToken);
         return new StartResponse(payment.Id, checkout.PaymentPageUrl);

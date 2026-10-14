@@ -94,6 +94,17 @@ public class CreditService(AppDbContext db, CreditOptions options, ILogger<Credi
         await AddRowAsync(payment.UserId, CreditTransactionType.Purchase, payment.Credits, null, cancellationToken, paymentId: payment.Id);
     }
 
+    // Hesap silinirken kalan bakiyeyi sıfırlar. Çağıran, silme transaction'ının içinde çağırır.
+    // Silinen hesabın hâlâ geçerli access token'ı (en fazla 15 dk) ücretli işlem yapamasın diye.
+    public async Task ForfeitAllAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        var balance = await db.Users.Where(u => u.Id == userId).Select(u => u.Credits).SingleAsync(cancellationToken);
+        if (balance == 0)
+            return;
+        await db.Users.Where(u => u.Id == userId).ExecuteUpdateAsync(s => s.SetProperty(u => u.Credits, 0), cancellationToken);
+        await AddRowAsync(userId, CreditTransactionType.Forfeit, -balance, null, cancellationToken);
+    }
+
     // Açık bir transaction içinde, bakiye UPDATE'inden sonra çağrılır: kullanıcı satırı bu transaction'da kilitli
     // olduğu için okunan bakiye tam bu hareketten sonraki bakiyedir.
     private async Task<CreditTransaction> AddRowAsync(Guid userId, CreditTransactionType type, int amount, string? operation,

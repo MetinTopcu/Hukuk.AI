@@ -23,6 +23,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="Legal\*.md" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Hukuk.AI.Data\Hukuk.AI.Data.csproj" />
     <ProjectReference Include="..\Hukuk.AI.Documents\Hukuk.AI.Documents.csproj" />
     <ProjectReference Include="..\Hukuk.AI.Drafting\Hukuk.AI.Drafting.csproj" />

@@ -6,6 +6,7 @@ public enum CreditTransactionType
     Usage,    // işlem ücreti (-), istek başında düşülür
     Refund,   // başarısız işlemin iadesi (+)
     Purchase, // ödeme ile yükleme (+)
+    Forfeit,  // hesap silinince kalan bakiye sıfırlanır (-)
 }
 
 // Kredi hareketi (ledger): satırlar değişmez ve silinmez, bakiye bu satırların toplamıdır.

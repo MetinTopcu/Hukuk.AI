@@ -9,4 +9,13 @@ public class AppUser : IdentityUser<Guid>
     public int Credits { get; set; }
 
     public DateTimeOffset CreatedAt { get; set; }
+
+    // KVKK: kayıtta onaylanan aydınlatma metninin sürümü ve zamanı (metin değişirse kim hangisini onayladı belli olsun).
+    public string? PrivacyVersion { get; set; }
+
+    public DateTimeOffset? PrivacyAcceptedAt { get; set; }
+
+    // Hesap silindiğinde dolar. Satır silinmez, anonimleştirilir: kredi ve ödeme kayıtları (mali kayıt) kişiye
+    // bağlanamayacak şekilde kalır.
+    public DateTimeOffset? DeletedAt { get; set; }
 }
